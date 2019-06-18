@@ -1,5 +1,31 @@
-// Create Query
-CREATE TABLE dim_tags (_Count BIGINT, _ExcerptPostId BIGINT, _Id BIGINT, _TagName VARCHAR, _WikiPostId BIGINT) WITH ( format = 'parquet', EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/tags.parquet' );
+-- Create Query
 
+CREATE TABLE dim_tags (
+  cnt INT, 
+  excerpt_post_id INT, 
+  id INT, 
+  tag_name VARCHAR, 
+  wiki_post_id INT
+) WITH ( 
+  FORMAT = 'parquet', 
+  EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/tags.parquet' 
+);
 
-CREATE TABLE dim_users (_Id, BIGINT, _AboutMe VARCHAR, _AccountId, BIGINT, _CreationDate VARCHAR, _DisplayName VARCHAR, _DownVotes BIGINT, _LastAccessDate VARCHAR, _Location VARCHAR, _ProfileImageUrl VARCHAR, _Reputation BIGINT, _UpVotes BIGINT, _View BIGINTs, _WebsiteUrl VARCHAR) WITH ( format = 'parquet', EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/users.parquet' );
+CREATE TABLE dim_users (
+  id BIGINT, 
+  about_me VARCHAR, 
+  account_id BIGINT, 
+  creation_date VARCHAR, 
+  display_name VARCHAR, 
+  down_votes BIGINT, 
+  last_access_date VARCHAR, 
+  location VARCHAR, 
+  profile_image_url VARCHAR, 
+  reputation BIGINT, 
+  upVotes BIGINT, 
+  view BIGINTs, 
+  website_url VARCHAR
+) WITH ( 
+  FORMAT = 'parquet', 
+  EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/users.parquet' 
+);
