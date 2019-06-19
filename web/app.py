@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import dash
 import dash_table
 
@@ -90,7 +91,7 @@ def update_output(n_clicks, input1):
 
     print(rows)
     #print(cp.stdout)
-    
+
 
     return u'''
         The Button has been pressed {} times,
