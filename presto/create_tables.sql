@@ -1,3 +1,4 @@
+-- Presto CLI: $ presto-cli --catalog hive --schema web
 -- Create Query
 
 CREATE TABLE dim_tags (
@@ -12,20 +13,22 @@ CREATE TABLE dim_tags (
 );
 
 CREATE TABLE dim_users (
-  id BIGINT, 
   about_me VARCHAR, 
-  account_id BIGINT, 
+  account_id INT, 
   creation_date VARCHAR, 
   display_name VARCHAR, 
-  down_votes BIGINT, 
+  down_votes INT, 
+  id INT, 
   last_access_date VARCHAR, 
   location VARCHAR, 
   profile_image_url VARCHAR, 
-  reputation BIGINT, 
-  upVotes BIGINT, 
-  view BIGINTs, 
+  reputation INT, 
+  up_votes INT, 
+  view INT, 
   website_url VARCHAR
 ) WITH ( 
   FORMAT = 'parquet', 
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/users.parquet' 
 );
+
+
