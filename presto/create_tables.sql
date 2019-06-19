@@ -34,8 +34,10 @@ CREATE TABLE IF NOT EXISTS dim_users (
 CREATE TABLE IF NOT EXISTS dim_comments (
   creation_date VARCHAR,
   id VARCHAR,
+  post_id INT,
   score INT,
   text INT,
+  user_display_name VARCHAR,
   user_id INT,
   load_date VARCHAR
 ) WITH ( 
