@@ -1,7 +1,7 @@
 -- Presto CLI: $ presto-cli --catalog hive --schema web
 -- Create Query
 
-CREATE TABLE dim_tags (
+CREATE TABLE dim_tags IF NOT EXISTS (
   cnt INT, 
   excerpt_post_id INT, 
   id INT, 
@@ -12,7 +12,7 @@ CREATE TABLE dim_tags (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/tags.parquet' 
 );
 
-CREATE TABLE dim_users (
+CREATE TABLE dim_users IF NOT EXISTS (
   about_me VARCHAR, 
   account_id INT, 
   creation_date VARCHAR, 
@@ -31,7 +31,7 @@ CREATE TABLE dim_users (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/users.parquet' 
 );
 
-CREATE TABLE dim_comments (
+CREATE TABLE dim_comments IF NOT EXISTS (
   creation_date VARCHAR,
   id VARCHAR,
   score INT,
@@ -44,7 +44,7 @@ CREATE TABLE dim_comments (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/comments.parquet' 
 );
 
-CREATE TABLE dim_posts (
+CREATE TABLE dim_posts IF NOT EXISTS (
   accepted_answer_id INT,
   answer_count INT,
   body VARCHAR,
@@ -71,7 +71,7 @@ CREATE TABLE dim_posts (
 );
 
 
-CREATE TABLE fct_posthistory (
+CREATE TABLE fct_posthistory IF NOT EXISTS (
   id INT,
   post_id INT,
   creation_date VARCHAR COMMENT "creation date w/ timestamp in UTC format"
