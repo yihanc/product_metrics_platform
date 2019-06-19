@@ -1,7 +1,7 @@
 -- Presto CLI: $ presto-cli --catalog hive --schema web
 -- Create Query
 
-CREATE TABLE dim_tags IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS dim_tags (
   cnt INT, 
   excerpt_post_id INT, 
   id INT, 
@@ -12,7 +12,7 @@ CREATE TABLE dim_tags IF NOT EXISTS (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/tags.parquet' 
 );
 
-CREATE TABLE dim_users IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS dim_users (
   about_me VARCHAR, 
   account_id INT, 
   creation_date VARCHAR, 
@@ -31,7 +31,7 @@ CREATE TABLE dim_users IF NOT EXISTS (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/users.parquet' 
 );
 
-CREATE TABLE dim_comments IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS dim_comments (
   creation_date VARCHAR,
   id VARCHAR,
   score INT,
@@ -39,12 +39,12 @@ CREATE TABLE dim_comments IF NOT EXISTS (
   user_id INT,
   load_date VARCHAR
 ) WITH ( 
-  PARTITIONED_BY = ['load_date'],
+  PARTITIONED_BY = ARRAY['load_date'],
   FORMAT = 'parquet', 
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/comments.parquet' 
 );
 
-CREATE TABLE dim_posts IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS dim_posts (
   accepted_answer_id INT,
   answer_count INT,
   body VARCHAR,
@@ -65,13 +65,13 @@ CREATE TABLE dim_posts IF NOT EXISTS (
   load_date VARCHAR,
   post_type_id INT
 ) WITH ( 
-  PARTITIONED_BY = ['load_date', 'post_type_id'],
+  PARTITIONED_BY = ARRAY['load_date', 'post_type_id'],
   FORMAT = 'parquet', 
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/posts.parquet' 
 );
 
 
-CREATE TABLE fct_posthistory IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS fct_posthistory (
   id INT,
   post_id INT,
   creation_date VARCHAR COMMENT "creation date w/ timestamp in UTC format"
@@ -81,7 +81,7 @@ CREATE TABLE fct_posthistory IF NOT EXISTS (
   create_date VARCHAR COMMENT "Date only in YYYY-MM-DD format. Partition Only",
   post_history_type_id INT
 ) WITH ( 
-  PARTITIONED_BY = ['create_date', 'post_type_id'],
+  PARTITIONED_BY = ARRAY['create_date', 'post_type_id'],
   FORMAT = 'parquet', 
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/posthistory.parquet' 
 );
