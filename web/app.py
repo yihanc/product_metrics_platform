@@ -36,8 +36,7 @@ app.layout = html.Div([
 
     dcc.Textarea(
         id="sql-state",
-        placeholder='Enter a value...',
-        value='select * from sample limit 10',
+        placeholder='Enter a SQL query... eg: select * from sample limit 10',
         style={'width': '100%'}
     ),
     html.Button(id='submit-button', n_clicks=0, children='Submit'),
