@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS dim_tags (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/tags.parquet' 
 );
 
+--
+
 CREATE TABLE IF NOT EXISTS dim_users (
   about_me VARCHAR, 
   account_id INT, 
@@ -31,20 +33,24 @@ CREATE TABLE IF NOT EXISTS dim_users (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/users.parquet' 
 );
 
-CREATE TABLE IF NOT EXISTS dim_comments (
-  creation_date VARCHAR,
-  id VARCHAR,
-  post_id INT,
-  score INT,
-  text INT,
-  user_display_name VARCHAR,
-  user_id INT,
-  load_date VARCHAR
+--
+
+CREATE TABLE IF NOT EXISTS dim_comments ( 
+  creation_date VARCHAR, 
+  id BIGINT, 
+  post_id BIGINT, 
+  score BIGINT, 
+  text VARCHAR, 
+  user_display_name VARCHAR, 
+  user_id BIGINT, 
+  load_date VARCHAR 
 ) WITH ( 
-  PARTITIONED_BY = ARRAY['load_date'],
+  # PARTITIONED_BY = ARRAY['load_date'],  # Keep creating NULL value
   FORMAT = 'parquet', 
-  EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/comments.parquet' 
+  EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/2019-06-19/comments.parquet'
 );
+
+--
 
 CREATE TABLE IF NOT EXISTS dim_posts (
   accepted_answer_id INT,
@@ -72,6 +78,7 @@ CREATE TABLE IF NOT EXISTS dim_posts (
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/posts.parquet' 
 );
 
+--
 
 CREATE TABLE IF NOT EXISTS fct_posthistory (
   id INT,
