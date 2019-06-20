@@ -46,11 +46,17 @@ app.layout = html.Div([
     dcc.Dropdown(
         id='my-dropdown',
         options=[
-            {'label': 'Posts Per Year', 'value': 'posts_per_year'},
-#             {'label': 'Montreal', 'value': 'MTL'},
-#             {'label': 'San Francisco', 'value': 'SF'}
+            {
+                'label': 'Top 10 Tags', 
+                'value': 'select tag_name, cnt from dim_tags limit 10',
+            },
+            {
+                'label': 'Posts Per Year (Slow About  ~1 min)', 
+                'value': "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
+            },
         ],
-        value='NYC'
+        placeholder="Select a metric",
+        value='Top 10 Tags',
     ),
     # LINE CHART
     dcc.Graph(
@@ -72,15 +78,15 @@ app.layout = html.Div([
 
 
 # Graph Call Back
+# One Query is getting two bar
 @app.callback(
     [dash.dependencies.Output('graph_line', 'figure'),
     dash.dependencies.Output('graph_bar', 'figure')],
     [dash.dependencies.Input('my-dropdown', 'value')])
 def update_bar_output(value):
-
     # sql = "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
-    sql = "select tag_name, cnt from dim_tags limit 10"
-    rows = exec_presto(sql)
+    # sql = "select tag_name, cnt from dim_tags limit 10"
+    rows = exec_presto(value)
 
     x_values = [ row[0] for row in rows ]
     y_values = [ row[1] for row in rows ]
