@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS dim_comments (
 
 --
 
-CREATE TABLE IF NOT EXISTS t10 (
+CREATE TABLE IF NOT EXISTS dim_posts (
   accepted_answer_id BIGINT,
   answer_count BIGINT,
   body VARCHAR,
