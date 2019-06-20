@@ -1,4 +1,13 @@
--- Presto CLI: $ presto-cli --catalog hive --schema web
+/* 
+Notes:
+
+Presto CLI: $ presto-cli --catalog hive --schema web
+
+Parquet Tool to read schema:
+$ wget http://central.maven.org/maven2/org/apache/parquet/parquet-tools/1.9.0/parquet-tools-1.9.0.jar
+$ hadoop jar parquet-tools-1.9.0.jar schema s3://xxx
+*/
+
 -- Create Query
 
 CREATE TABLE IF NOT EXISTS dim_tags (
@@ -45,37 +54,38 @@ CREATE TABLE IF NOT EXISTS dim_comments (
   user_id BIGINT, 
   load_date VARCHAR 
 ) WITH ( 
-  # PARTITIONED_BY = ARRAY['load_date'],  # Keep creating NULL value
+  -- PARTITIONED_BY = ARRAY['load_date'],  # Keep creating NULL value
   FORMAT = 'parquet', 
   EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/2019-06-19/comments.parquet'
 );
 
 --
 
-CREATE TABLE IF NOT EXISTS dim_posts (
-  accepted_answer_id INT,
-  answer_count INT,
+CREATE TABLE IF NOT EXISTS t10 (
+  accepted_answer_id BIGINT,
+  answer_count BIGINT,
   body VARCHAR,
-  comment_count INT,
+  closed_date VARCHAR,
+  comment_count BIGINT,
   community_owned_date VARCHAR,
   creation_date VARCHAR,
-  favorite_count INT,
-  id VARCHAR,
+  favorite_count BIGINT,
+  id BIGINT,
   last_activity_date VARCHAR,
-  last_editor_display_name VARCHAR,  
-  last_editor_user_id INT,
   last_edit_date VARCHAR,
-  owner_user_id INT,
-  score INT,
+  last_editor_display_name VARCHAR,    
+  last_editor_user_id BIGINT,  
+  owner_display_name VARCHAR,
+  owner_user_id BIGINT,
+  parent_id BIGINT,
+  post_type_id BIGINT,
+  score BIGINT,
   tags VARCHAR,
   title VARCHAR,
-  view_count INT,
-  load_date VARCHAR,
-  post_type_id INT
+  view_count BIGINT
 ) WITH ( 
-  PARTITIONED_BY = ARRAY['load_date', 'post_type_id'],
   FORMAT = 'parquet', 
-  EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/posts.parquet' 
+  EXTERNAL_LOCATION = REPLACE('s3://stackoverflow-ds/raw/<DATE>/posts.parquet', '<DATE>', CAST(current_date AS VARCHAR))
 );
 
 --
@@ -92,5 +102,5 @@ CREATE TABLE IF NOT EXISTS fct_posthistory (
 ) WITH ( 
   PARTITIONED_BY = ARRAY['create_date', 'post_type_id'],
   FORMAT = 'parquet', 
-  EXTERNAL_LOCATION ='s3://stackoverflow-ds/raw/posthistory.parquet' 
+  EXTERNAL_LOCATION = REPLACE('s3://stackoverflow-ds/raw/<DATE>/post_history.parquet', '<DATE>', CAST(current_date AS VARCHAR))
 );
