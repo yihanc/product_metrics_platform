@@ -91,16 +91,16 @@ CREATE TABLE IF NOT EXISTS dim_posts (
 --
 
 CREATE TABLE IF NOT EXISTS fct_posthistory (
-  id INT,
-  post_id INT,
-  creation_date VARCHAR COMMENT "creation date w/ timestamp in UTC format"
-  user_id INT,
+  id BIGINT,
+  post_id BIGINT,
+  creation_date VARCHAR COMMENT "creation date w/ timestamp in UTC format",
+  user_id BIGINT,
   text VARCHAR,
   revision_guid VARCHAR,
   create_date VARCHAR COMMENT "Date only in YYYY-MM-DD format. Partition Only",
-  post_history_type_id INT
+  post_history_type_id BIGINT
 ) WITH ( 
-  PARTITIONED_BY = ARRAY['create_date', 'post_type_id'],
+  -- PARTITIONED_BY = ARRAY['create_date', 'post_type_id'],
   FORMAT = 'parquet', 
   EXTERNAL_LOCATION = REPLACE('s3://stackoverflow-ds/raw/<DATE>/post_history.parquet', '<DATE>', CAST(current_date AS VARCHAR))
 );
