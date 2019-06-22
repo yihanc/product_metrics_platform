@@ -91,14 +91,16 @@ CREATE TABLE IF NOT EXISTS dim_posts (
 --
 
 CREATE TABLE IF NOT EXISTS fct_posthistory (
+  comment VARCHAR,
+  creation_date VARCHAR COMMENT 'creation date w/ timestamp in UTC format',
   id BIGINT,
+  post_history_type_id BIGINT,
   post_id BIGINT,
-  creation_date VARCHAR COMMENT "creation date w/ timestamp in UTC format",
-  user_id BIGINT,
-  text VARCHAR,
   revision_guid VARCHAR,
-  create_date VARCHAR COMMENT "Date only in YYYY-MM-DD format. Partition Only",
-  post_history_type_id BIGINT
+  text VARCHAR,
+  user_display_name VARCHAR,
+  user_id BIGINT
+  -- create_date VARCHAR COMMENT 'Date only in YYYY-MM-DD format. Partition Only',
 ) WITH ( 
   -- PARTITIONED_BY = ARRAY['create_date', 'post_type_id'],
   FORMAT = 'parquet', 
