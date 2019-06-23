@@ -1,0 +1,21 @@
+-- How many questions created for each date for 2018?
+SELECT
+  __time as creation_date,
+  _PostTypeId,
+  COUNT(1)
+FROM dim_posts
+WHERE __time BETWEEN '2018-01-01' AND '2018-12-31'
+AND _PostTypeId = 1 
+GROUP BY 1,2
+ORDER BY 1,2
+
+-- How many answers created for each date?
+SELECT
+  __time as creation_date,
+  _PostTypeId,
+  COUNT(1)
+FROM dim_posts
+WHERE __time BETWEEN '2018-01-01' AND '2018-12-31'
+AND _PostTypeId = 2
+GROUP BY 1,2
+ORDER BY 1,2

@@ -1,0 +1,49 @@
+{
+  "type" : "index_hadoop",
+  "spec" : {
+    "dataSchema" : {
+      "dataSource" : "dim_posts",
+      "parser" : {
+        "type" : "string",
+        "parseSpec" : {
+          "format" : "json",
+          "dimensionsSpec" : {
+            "dimensions" : [
+              "_Id",
+              "_PostTypeId",
+              "_ParentId",
+              "_AcceptedAnswerId"
+            ]
+          },
+          "timestampSpec": {
+            "column": "_CreationDate",
+            "format": "iso"
+          }
+        }
+      },
+      "metricsSpec" : [
+        {
+          "type" : "count",
+          "name" : "count"
+        }
+      ],
+      "granularitySpec" : {
+        "type" : "uniform",
+        "segmentGranularity" : "day",
+        "queryGranularity" : "day",
+        "intervals" : ["2017-01-01T00:00:00.000/2018-01-01T00:00:00.000"],
+        "rollup" : false
+      }
+    },
+    "ioConfig" : {
+      "type" : "hadoop",
+      "inputSpec" : {
+        "type" : "static",
+        "paths" : "s3a://stackoverflow-ds/druid/posts.json/"
+      }
+    },
+    "tuningConfig" : {
+      "type" : "hadoop"
+    }
+  }
+}
