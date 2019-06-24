@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import datetime
 
 import dash
@@ -101,7 +102,7 @@ def update_graph_live(n):
     # Collect data
     for i in range(minutes):
         now = datetime.datetime.now()
-        before = now - datetime.timedelta(seconds=i*20)
+        before = now - datetime.timedelta(seconds=i*60)
 
         key = before.strftime('%Y-%m-%dT%H-%M')
         value = dau[key] if key in dau else 0
