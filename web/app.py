@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 import dash
 import dash_table
-
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import pandas as pd
-
 import requests, json
 import subprocess
 import prestodb
+from kafka import KafkaConsumer, TopicPartition
+
 # ttt
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 

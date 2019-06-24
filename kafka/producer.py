@@ -5,15 +5,18 @@ import lxml.etree
 import json
 from datetime import datetime
 from kafka import KafkaProducer
+from random import randint
 
 producer = KafkaProducer(bootstrap_servers='172.31.7.229:9092')
+
+n = randint(5, 50)  # Random generate n events in 5 sec
+next_pause = n
 
 for i, line in enumerate(open('s3://stackoverflow-ds/PostHistory_rt.xml')):
     if i <= 1:  # Skip first two lines
         continue
     print(" ")
     print(line)
-    
 
     schema = ["Comment", 'Id', 'PostHistoryTypeId', 'PostId', 'RevisionGUID', 'Text', 'UserDisplayName', 'UserId']
     row = {}
@@ -30,8 +33,10 @@ for i, line in enumerate(open('s3://stackoverflow-ds/PostHistory_rt.xml')):
     # Load into Kafka server
     producer.send('posthistory', parsed.encode('utf-8'))
 
-    if i % 5 == 0:
+    if i == next_pause:
         print("resting 5 sec...")
+        next_pause += randint(5, 20)
         time.sleep(5)
-    if i == 1000:
+    
+    if i == 100000:
         break
