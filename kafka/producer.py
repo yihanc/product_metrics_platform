@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from kafka import KafkaProducer
 
-producer = KafkaProducer(bootstrap_servers='localhost:9092')
+producer = KafkaProducer(bootstrap_servers='172.31.7.229:9092')
 
 for i, line in enumerate(open('s3://stackoverflow-ds/PostHistory_rt.xml')):
     if i <= 1:  # Skip first two lines

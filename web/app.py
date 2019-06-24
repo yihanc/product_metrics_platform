@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import dash
 import dash_table
@@ -55,7 +56,7 @@ app.layout = html.Div([
             },
         ],
         placeholder="Select a metric",
-        value='Top 10 Tags',
+        value='',
     ),
     # LINE CHART
     dcc.Graph(
@@ -85,6 +86,10 @@ app.layout = html.Div([
 def update_bar_output(value):
     # sql = "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
     # sql = "select tag_name, cnt from dim_tags limit 10"
+    print(value)
+    if not value:
+        return None, None
+
     rows = exec_presto(value)
 
     x_values = [ row[0] for row in rows ]
@@ -130,6 +135,8 @@ def update_bar_output(value):
               [State('sql-state', 'value'),])
 def update_output(n_clicks, input1):
     # Remove semicolons if any
+    if not input1: 
+        return ''
     input1 = input1.replace(';', '') 
 
     rows = exec_presto(input1)
