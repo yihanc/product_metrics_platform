@@ -3,6 +3,7 @@ import datetime
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import plotly.graph_objs as go
 import plotly
 from dash.dependencies import Input, Output
 from kafka import KafkaConsumer, TopicPartition
@@ -19,7 +20,15 @@ app.layout = html.Div(
     html.Div([
         html.H4('TERRA Satellite Live Feed'),
         html.Div(id='live-update-text'),
-        dcc.Graph(id='graph_line'),
+        # LINE CHART
+        dcc.Graph(
+            id='graph_line',
+            config={
+                'showSendToCloud': True,
+                'plotlyServerURL': 'https://plot.ly'
+            }
+        ),
+        # BAR CHART
         dcc.Graph(
             id='graph_bar',
             config={
@@ -100,20 +109,16 @@ def update_graph_live(n):
         data['time'].append(before)
         data['dau'].append(value)
         
-    # Create the graph with subplots
-    fig = plotly.tools.make_subplots(rows=2, cols=1, vertical_spacing=0.2)
-    fig['layout']['margin'] = {
-        'l': 30, 'r': 10, 'b': 30, 't': 10
+    result_line = {
+        'data': [{
+            'type': 'scatter',
+            'x': data['time'],
+            'y': data['dau'],
+        }],
+        'layout': {
+            'title': value
+        }
     }
-    fig['layout']['legend'] = {'x': 0, 'y': 1, 'xanchor': 'left'}
-
-    fig.append_trace({
-        'x': data['time'],
-        'y': data['dau'],
-        'name': 'dau',
-        'mode': 'lines+markers',
-        'type': 'scatter'
-    }, 1, 1)
 
     result_bar = {
         'data': [
@@ -137,7 +142,7 @@ def update_graph_live(n):
         ),
     }
 
-    return fig, result_bar
+    return result_line, result_bar
 
 
 

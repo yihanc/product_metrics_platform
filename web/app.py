@@ -86,9 +86,6 @@ app.layout = html.Div([
 def update_bar_output(value):
     # sql = "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
     # sql = "select tag_name, cnt from dim_tags limit 10"
-    print(value)
-    if not value:
-        return None, None
 
     rows = exec_presto(value)
 
@@ -140,7 +137,6 @@ def update_output(n_clicks, input1):
     input1 = input1.replace(';', '') 
 
     rows = exec_presto(input1)
-    print(rows)
 
     return u'''
         The Button has been pressed {} times,
@@ -151,6 +147,8 @@ def update_output(n_clicks, input1):
 
 
 def exec_presto(sql):
+    if not sql or len(sql) == 0:
+        return []
     import prestodb
     conn=prestodb.dbapi.connect(
         host='localhost',
@@ -161,7 +159,8 @@ def exec_presto(sql):
     )
     cur = conn.cursor()
     cur.execute(sql)
-    return cur.fetchall()
+    result = cur.fetchall()
+    return result
     
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0')
