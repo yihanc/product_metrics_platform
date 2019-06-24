@@ -2,6 +2,11 @@
 from smart_open import open
 import time
 import lxml.etree
+import json
+from datetime import datetime
+from kafka import KafkaProducer
+
+producer = KafkaProducer(bootstrap_servers='localhost:9092')
 
 for i, line in enumerate(open('s3://stackoverflow-ds/PostHistory_rt.xml')):
     if i <= 1:  # Skip first two lines
@@ -11,15 +16,19 @@ for i, line in enumerate(open('s3://stackoverflow-ds/PostHistory_rt.xml')):
     
 
     schema = ["Comment", 'Id', 'PostHistoryTypeId', 'PostId', 'RevisionGUID', 'Text', 'UserDisplayName', 'UserId']
-    parsed = {}
+    row = {}
 
     for col in schema:
         value = lxml.etree.fromstring(line).xpath('//row/@{}'.format(col))
-        parsed[col] = value[0] if len(value) > 0 else ""
+        row[col] = value[0] if len(value) > 0 else ""
 
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S.000')
+    row['_CreationDate'] = now 
+    parsed = json.dumps(row)
     print(parsed)
 
     # Load into Kafka server
+    producer.send('posthistory', parsed.encode('utf-8'))
 
     if i % 5 == 0:
         print("resting 5 sec...")
