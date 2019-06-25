@@ -1,4 +1,4 @@
-# Metrics Platform 
+# Product Metrics Platform 
 
 This is a project I did during Insight Data Engineering program.
 
