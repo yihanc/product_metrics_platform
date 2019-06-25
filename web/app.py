@@ -6,32 +6,38 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
-# import pandas as pd
-import requests, json
-import subprocess
-import prestodb
+import requests, json, subprocess, prestodb, time
 from kafka import KafkaConsumer, TopicPartition
 
-# ttt
+################################################################################
+###
+### HTML CSS
+###
+################################################################################
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div([
-    html.H1(children='Hello Dash'),
+    html.H1(children='Product Metrics Platform'),
 
     html.Div(children='''
-        Dash: A web application framework for Python.
+        Product Metrics Platform: A web application to discover and explore predefined metrics fast and easily.
     '''),
 
 
     dcc.Textarea(
         id="sql-state",
         placeholder='Enter a SQL query... eg: select * from sample limit 10',
-        style={'width': '100%'}
+        style={'width': '60%'}
     ),
     html.Button(id='submit-button', n_clicks=0, children='Submit'),
-    html.Div(id='output-state'),
+    html.H3(children='Presto Result:'),
+    html.Div(id='presto-state'),
+    html.P(),
+    html.H3(children='Druid Result: '),
+    html.Div(id='druid-state'),
+    html.P(),
 
     dcc.Dropdown(
         id='my-dropdown',
@@ -67,8 +73,12 @@ app.layout = html.Div([
 ])
 
 
-# Graph Call Back
-# One Query is getting two bar
+################################################################################
+###
+### CALLBACKS
+###
+################################################################################
+# Graph Line and Graph Bar Call Back
 @app.callback(
     [dash.dependencies.Output('graph_line', 'figure'),
     dash.dependencies.Output('graph_bar', 'figure')],
@@ -77,7 +87,8 @@ def update_bar_output(value):
     # sql = "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
     # sql = "select tag_name, cnt from dim_tags limit 10"
 
-    rows = exec_presto(value)
+    rows, dur = exec_presto(value)
+    # print("rows: ", rows)
 
     x_values = [ row[0] for row in rows ]
     y_values = [ row[1] for row in rows ]
@@ -88,7 +99,7 @@ def update_bar_output(value):
             'y': y_values,
         }],
         'layout': {
-            'title': value
+            'title': 'Query "{}" finished in {} seconds.'.format(value, dur)
         }
     }
 
@@ -116,32 +127,55 @@ def update_bar_output(value):
     return result_line, result_bar
 
 
-# Text Input Callback
-@app.callback(Output('output-state', 'children'),
+# Comparing Presto and Druid for the same query
+@app.callback(Output('presto-state', 'children'),
               [Input('submit-button', 'n_clicks')],
               [State('sql-state', 'value'),])
-def update_output(n_clicks, input1):
+def get_presto_state(n_clicks, sql):
     # Remove semicolons if any
-    if not input1: 
+    if not sql: 
         return ''
-    input1 = input1.replace(';', '') 
+    sql = sql.replace(';', '') 
 
-    rows = exec_presto(input1)
+    presto_result, dur = exec_presto(sql)
 
     return u'''
         The Button has been pressed {} times,
-        Input 1 is "{}",
-        and Input 2 is ""
-        and output is "{}"
-    '''.format(n_clicks, input1, rows)
+        SQL is "{}",
+        Query finished in {} seconds,
+        Result is: "{}".
+    '''.format(n_clicks, sql, dur, presto_result)
 
 
+@app.callback(Output('druid-state', 'children'),
+              [Input('submit-button', 'n_clicks')],
+              [State('sql-state', 'value'),])
+def get_druid_state(n_clicks, sql):
+    if not sql:
+        return ''
+    sql = sql.replace(';', '')
+
+    druid_result, dur = exec_druid(sql)
+
+    return u'''
+        The Button has been pressed {} times,
+        SQL is "{}",
+        Query finished in {} seconds,
+        Result is: "{}".
+    '''.format(n_clicks, sql, dur, druid_result)
+
+
+
+################################################################################
+###
+### FUNCTIONS
+###
+################################################################################
 def exec_presto(sql):
-    # Demo - Hard Coding connection for now
-    # Should come from a config file
+    start = time.clock()
     if not sql or len(sql) == 0:
-        return []
-    import prestodb
+        return [], 0
+    # Demo Only. Should come from a config file
     conn=prestodb.dbapi.connect(
         host='localhost',
         port=8889,
@@ -152,8 +186,30 @@ def exec_presto(sql):
     cur = conn.cursor()
     cur.execute(sql)
     result = cur.fetchall()
-    return result
+    return result, time.clock() - start
     
+
+def exec_druid(sql):
+    start = time.clock()
+    msg = json.dumps({'query': sql})
+    # print("msg: ", msg)
+    headers = {
+        'content-type':'application/json'
+    }
+    
+    # Demo Only. Should come from a config file
+    druid_url = 'http://34.211.45.55:8082/druid/v2/sql/'
+    r = requests.post(url=druid_url, data=msg, headers=headers)
+    # print("r: ", r, r.text)
+    return r.text, time.clock() - start
+    
+    
+
+################################################################################
+###
+### RUN
+###
+################################################################################
 if __name__ == '__main__':
     # Since it is demo, running on port 80 directly
     app.run_server(debug=True, host='0.0.0.0', port=80)
