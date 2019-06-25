@@ -6,7 +6,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
-import pandas as pd
+# import pandas as pd
 import requests, json
 import subprocess
 import prestodb
@@ -16,16 +16,6 @@ from kafka import KafkaConsumer, TopicPartition
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-
-
-df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/solar.csv')
-
-app.layout = dash_table.DataTable(
-    id='table',
-    columns=[{"name": i, "id": i} for i in df.columns],
-    data=df.to_dict('records'),
-)
-
 
 app.layout = html.Div([
     html.H1(children='Hello Dash'),
@@ -147,6 +137,8 @@ def update_output(n_clicks, input1):
 
 
 def exec_presto(sql):
+    # Demo - Hard Coding connection for now
+    # Should come from a config file
     if not sql or len(sql) == 0:
         return []
     import prestodb
@@ -163,4 +155,5 @@ def exec_presto(sql):
     return result
     
 if __name__ == '__main__':
-    app.run_server(debug=True, host='0.0.0.0')
+    # Since it is demo, running on port 80 directly
+    app.run_server(debug=True, host='0.0.0.0', port=80)
