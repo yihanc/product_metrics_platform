@@ -88,13 +88,23 @@ app.layout = html.Div([
                 placeholder="Select a metric",
                 value='',
             ),
-            # LINE CHART
-            dcc.Graph(
-                id='graph_line',
-                config={
-                    'showSendToCloud': True,
-                'plotlyServerURL': 'https://plot.ly'
-                }
+            dcc.Dropdown(
+                options=[
+                    {'label': 'New York City', 'value': 'NYC'},
+                    {'label': 'Montréal', 'value': 'MTL'},
+                    {'label': 'San Francisco', 'value': 'SF'}
+                ],
+                placeholder='Group By',
+                value='',
+            ),
+            dcc.Dropdown(
+                options=[
+                    {'label': 'New York City', 'value': 'NYC'},
+                    {'label': 'Montréal', 'value': 'MTL'},
+                    {'label': 'San Francisco', 'value': 'SF'}
+                ],
+                placeholder='Filter',
+                value='',
             ),
             # BAR CHART
             dcc.Graph(
@@ -159,8 +169,7 @@ app.layout = html.Div([
 ################################################################################
 # Graph Line and Graph Bar Call Back
 @app.callback(
-    [dash.dependencies.Output('graph_line', 'figure'),
-    dash.dependencies.Output('graph_bar', 'figure')],
+    [dash.dependencies.Output('graph_bar', 'figure')],
     [dash.dependencies.Input('my-dropdown', 'value')])
 def update_bar_output(value):
     # sql = "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
@@ -171,16 +180,6 @@ def update_bar_output(value):
 
     x_values = [ row[0] for row in rows ]
     y_values = [ row[1] for row in rows ]
-    result_line = {
-        'data': [{
-            'type': 'scatter',
-            'x': x_values,
-            'y': y_values,
-        }],
-        'layout': {
-            'title': 'Query "{}" finished in {} seconds.'.format(value, dur)
-        }
-    }
 
     result_bar = {
         'data': [
@@ -203,7 +202,7 @@ def update_bar_output(value):
             margin=go.layout.Margin(l=40, r=0, t=40, b=30)
         ),
     }
-    return result_line, result_bar
+    return (result_bar,)
 
 
 # Comparing Presto and Druid for the same query
