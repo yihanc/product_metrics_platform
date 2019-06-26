@@ -10,9 +10,6 @@ from dash.dependencies import Input, Output
 from kafka import KafkaConsumer, TopicPartition
 import json
 
-# pip install pyorbital
-from pyorbital.orbital import Orbital
-satellite = Orbital('TERRA')
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -75,7 +72,6 @@ def update_metrics(n):
     dau = kafka_load_dau(seconds=1800)
     dau_str = json.dumps(dau)
 
-    lon, lat, alt = satellite.get_lonlatalt(datetime.datetime.now())
     style = {'padding': '5px', 'fontSize': '30px'}
 
     return [ html.Span('Message: {}'.format(json.dumps(dau)), style=style)]
