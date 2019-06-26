@@ -37,8 +37,6 @@ pip-3.6 install --user kafka-python
 ```
 3. Start the app
 
-To run the app in continueously in backgroud
-
 ```
 cd product_metrics_platform/app
 nohup python3 app.py &
