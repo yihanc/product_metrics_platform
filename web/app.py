@@ -7,8 +7,12 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
+
 import requests, json, subprocess, prestodb, time, datetime
-from kafka import KafkaConsumer, TopicPartition
+from kafka import KafkaConsumer, TopicPartition, KafkaProducer
+from smart_open import open
+import lxml.etree
+from random import randint
 
 
 
@@ -114,7 +118,7 @@ app.layout = html.Div([
                     'plotlyServerURL': 'https://plot.ly'
                 }
             ),
-        ]),
+        ],style={'width': '49%', 'display': 'block', 'margin':'0, auto'}),
         dcc.Tab(label='Adhoc Query - (Compare Druid and Presto)', children=[
             html.H3(children='Compare Presto and Druid Speed:'),
             html.Div(children='''
@@ -132,9 +136,17 @@ app.layout = html.Div([
             html.H3(children='Druid Result: '),
             html.Div(id='druid-state'),
             html.P(),
-        ]),
+        ],style={'width': '49%', 'display': 'block', 'margin':'0, auto'}),
         dcc.Tab(label='Live Data', children=[
-            html.H4('TERRA Satellite Live Feed'),
+            dcc.RadioItems(
+                id="live_control_button",
+                options=[
+                    {'label': 'Stop Data', 'value': 'stop'},
+                    {'label': 'Start Data', 'value': 'start'},
+                ],
+                value='stop'
+            ),
+            html.H4('Live Active Users per minute:'),
             html.Div(id='live_text'),
             # LINE CHART
             dcc.Graph(
@@ -144,19 +156,12 @@ app.layout = html.Div([
                     'plotlyServerURL': 'https://plot.ly'
                 }
             ),
-            # BAR CHART
-            dcc.Graph(
-                id='live_graph_bar',
-                config={
-                    'showSendToCloud': True,
-                    'plotlyServerURL': 'https://plot.ly'
-                }
-            ),
             dcc.Interval(
                 id='live_interval_component',
                 interval=5*1000, # in milliseconds
                 n_intervals=0
-            )            
+            ),
+            html.Div(id='hidden-div', style={'display':'none'})
         ]),
     ]),
 ])
@@ -243,22 +248,62 @@ def get_druid_state(n_clicks, sql):
     '''.format(n_clicks, sql, dur, druid_result)
 
 
+# Kafka Produce Live Data (Simulator)
+# Randomly generate 5 - 50 messages to the topic
+@app.callback(
+    Output('hidden-div', 'children'),
+    [Input('live_interval_component', 'n_intervals'),
+    Input('live_control_button', 'value')])
+def kafka_producer_active_user(n_intervals, value):
+    print("kafka, ", value)
+    if value == "stop":
+        return
+    
+    producer = KafkaProducer(bootstrap_servers='172.31.7.229:9092')
+    s3_url = 's3://stackoverflow-ds/PostHistory_rt.xml'
+
+    stop = randint(5, 50)  # Random generate n events in 5 sec
+
+    for i, line in enumerate(open(s3_url)):
+        if i <= 1:  # Skip first two lines
+            continue
+
+        schema = ["Comment", 'Id', 'PostHistoryTypeId', 'PostId', 'RevisionGUID', 'Text', 'UserDisplayName', 'UserId']
+        row = {}
+
+        for col in schema:
+            value = lxml.etree.fromstring(line).xpath('//row/@{}'.format(col))
+            row[col] = value[0] if len(value) > 0 else ""
+
+        now = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S.000')
+        row['_CreationDate'] = now
+        parsed = json.dumps(row)
+        # print(parsed)
+
+        # Send message to Kafka Topic
+        producer.send('posthistory', parsed.encode('utf-8'))
+
+        if i >= stop:
+            return
+    return
+            
+
 @app.callback(Output('live_text', 'children'),
               [Input('live_interval_component', 'n_intervals')])
 def update_metrics(n):
-    # Latest
     dau = kafka_load_dau(seconds=1800)
-    dau_str = json.dumps(dau)
 
-    style = {'padding': '5px', 'fontSize': '30px'}
+    now_minute = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M')
+    now_dau = dau[now_minute] if now_minute in dau else 0
 
-    return [ html.Span('Message: {}'.format(json.dumps(dau)), style=style)]
+    style = {'padding': '5px', 'fontSize': '50px', 'align': 'center'}
+
+    return [ html.Span('{} Active Users'.format(now_dau), style=style)]
 
 
 # Multiple components can update everytime interval gets fired.
 @app.callback(
-    [Output('live_graph_line', 'figure'),
-    Output('live_graph_bar', 'figure')],
+    Output('live_graph_line', 'figure'),
     [Input('live_interval_component', 'n_intervals')])
 def update_graph_live(n):
     # Latest
@@ -291,33 +336,11 @@ def update_graph_live(n):
             'y': data['dau'],
         }],
         'layout': {
-            'title': value
+            'title': "Line Chart"
         }
     }
 
-    result_bar = {
-        'data': [
-            go.Bar(
-                x=data['time'],
-                y=data['dau'],
-                name='Bar',
-                marker=go.bar.Marker(
-                    color='rgb(55, 83, 109)'
-                )
-            ),
-        ],
-        'layout': go.Layout(
-            title='Bar Chart',
-            showlegend=True,
-            legend=go.layout.Legend(
-                x=0,
-                y=1.0
-            ),
-            margin=go.layout.Margin(l=40, r=0, t=40, b=30)
-        ),
-    }
-
-    return result_line, result_bar
+    return result_line
 
 
 
@@ -384,7 +407,6 @@ def kafka_load_dau(seconds=1800):
             break
     return dau
 
-    
 
 ################################################################################
 ###
