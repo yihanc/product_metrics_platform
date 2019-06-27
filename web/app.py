@@ -24,7 +24,7 @@ from random import randint
 
 PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
 
-nav_item = dbc.NavItem(dbc.NavLink("Link", href="#"))
+nav_item = dbc.NavItem(dbc.NavLink("", href="#"))
 navbar = dbc.Navbar(
     dbc.Container(
         [
@@ -68,14 +68,19 @@ app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = html.Div([
     navbar,
-    # html.H1(children='Product Metrics Platform'),
 
-    html.Div(children='''
-        Product Metrics Platform: A web application to discover and explore predefined metrics fast and easily.
-    '''),
+    html.H2(
+        children="Product Metrics Platform",
+        style={'margin-left': '20px', 'margin-top': '0px'},
+    ),
 
-    dcc.Tabs(id="tabs", children=[
-        dcc.Tab(label='Tab one', children=[
+    html.H5(
+        children="A web application to discover and explore predefined metrics fast and easily", 
+        style={'margin': '10px', 'margin-left': '40px', 'margin-bottom': '50px', 'color': 'gray'},
+    ),
+
+    dcc.Tabs(id="tabs", style={'margin': '20px'}, children=[
+        dcc.Tab(label='Metrics Discovery', children=[
             html.H3(children='Select a predefined metric and see result: '),
             dcc.Dropdown(
                 id='my-dropdown',
@@ -118,51 +123,72 @@ app.layout = html.Div([
                     'plotlyServerURL': 'https://plot.ly'
                 }
             ),
-        ],style={'width': '49%', 'display': 'block', 'margin':'0, auto'}),
-        dcc.Tab(label='Adhoc Query - (Compare Druid and Presto)', children=[
-            html.H3(children='Compare Presto and Druid Speed:'),
-            html.Div(children='''
-                Try type "select count(1) from dim_posts" and see the differences..
-            '''),
-            dcc.Textarea(
-                id="sql-state",
-                placeholder='Enter a SQL query... eg: select * from sample limit 10',
-                style={'width': '60%'}
-            ),
-            html.Button(id='submit-button', n_clicks=0, children='Submit'),
-            html.H3(children='Presto Result:'),
-            html.Div(id='presto-state'),
-            html.P(),
-            html.H3(children='Druid Result: '),
-            html.Div(id='druid-state'),
-            html.P(),
-        ],style={'width': '49%', 'display': 'block', 'margin':'0, auto'}),
+        ]),
+
         dcc.Tab(label='Live Data', children=[
+            html.H4('Control Button:'),
             dcc.RadioItems(
                 id="live_control_button",
                 options=[
-                    {'label': 'Stop Data', 'value': 'stop'},
-                    {'label': 'Start Data', 'value': 'start'},
+                    {'label': 'Start Live Data', 'value': 'start'},
+                    {'label': 'Stop Live Data', 'value': 'stop'},
                 ],
-                value='stop'
+                value='start',
+                labelStyle={'display': 'inline-block'},
+                style={'margin': '20px', 'vertical-align': 'middle'},
             ),
             html.H4('Live Active Users per minute:'),
-            html.Div(id='live_text'),
+            html.Div(
+                id='live_text',
+                style={'margin': '20px'},
+            ),
             # LINE CHART
             dcc.Graph(
                 id='live_graph_line',
                 config={
                     'showSendToCloud': True,
                     'plotlyServerURL': 'https://plot.ly'
-                }
+                },
+                style={'margin': '50px'},
+            ),
+            # BAR CHART
+            dcc.Graph(
+                id='live_graph_bar',
+                config={
+                    'showSendToCloud': True,
+                    'plotlyServerURL': 'https://plot.ly'
+                },
+                style={'margin': '50px'},
             ),
             dcc.Interval(
                 id='live_interval_component',
                 interval=5*1000, # in milliseconds
-                n_intervals=0
+                n_intervals=0,
             ),
             html.Div(id='hidden-div', style={'display':'none'})
         ]),
+
+        dcc.Tab(
+            label='Adhoc Query - (Compare Druid and Presto)', 
+            children=[
+                html.H3(children='Compare Presto and Druid Speed:'),
+                html.Div(children='''
+                    Try type "select count(1) from dim_posts" and see the differences..
+                '''),
+                dcc.Textarea(
+                    id="sql-state",
+                    placeholder='Enter a SQL query... eg: select * from sample limit 10',
+                    style={'width': '60%'}
+                ),
+                html.Button(id='submit-button', n_clicks=0, children='Submit'),
+                html.H3(children='Presto Result:'),
+                html.Div(id='presto-state'),
+                html.P(),
+                html.H3(children='Druid Result: '),
+                html.Div(id='druid-state'),
+                html.P(),
+            ],
+        ),
     ]),
 ])
 
@@ -303,7 +329,8 @@ def update_metrics(n):
 
 # Multiple components can update everytime interval gets fired.
 @app.callback(
-    Output('live_graph_line', 'figure'),
+    [Output('live_graph_line', 'figure'),
+    Output('live_graph_bar', 'figure')],
     [Input('live_interval_component', 'n_intervals')])
 def update_graph_live(n):
     # Latest
@@ -340,7 +367,29 @@ def update_graph_live(n):
         }
     }
 
-    return result_line
+    result_bar = {
+        'data': [
+            go.Bar(
+                x=data['time'],
+                y=data['dau'],
+                name='Bar',
+                marker=go.bar.Marker(
+                    color='rgb(55, 83, 109)'
+                )
+            ),
+        ],
+        'layout': go.Layout(
+            title='Bar Chart',
+            showlegend=True,
+            legend=go.layout.Legend(
+                x=0,
+                y=1.0
+            ),
+            margin=go.layout.Margin(l=40, r=0, t=40, b=30)
+        ),
+    }
+
+    return result_line, result_bar
 
 
 
