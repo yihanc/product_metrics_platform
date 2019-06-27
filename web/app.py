@@ -90,10 +90,6 @@ app.layout = html.Div([
                 id='metric_dropdown',
                 options=[
                     {
-                        'label': 'Top 10 Tags',
-                        'value': 'P;select tag_name, cnt from dim_tags limit 10',
-                    },
-                    {
                         'label': 'Questions Posted',
                         'value': '''D;
                             SELECT 
@@ -122,6 +118,10 @@ app.layout = html.Div([
                             ORDER BY
                                 1
                         ''',
+                    },
+                    {
+                        'label': 'Top 10 Tags',
+                        'value': 'P;select tag_name, cnt from dim_tags limit 10',
                     },
                 ],
                 placeholder="Select a metric",
