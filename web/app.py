@@ -13,6 +13,7 @@ from kafka import KafkaConsumer, TopicPartition, KafkaProducer
 from smart_open import open
 import lxml.etree
 from random import randint
+from jinja2 import Template
 
 
 
@@ -81,39 +82,81 @@ app.layout = html.Div([
 
     dcc.Tabs(id="tabs", style={'margin': '20px'}, children=[
         dcc.Tab(label='Metrics Discovery', children=[
-            html.H3(children='Select a predefined metric and see result: '),
+            html.H3(
+                children='Select a predefined metric and see result: ',
+                style={'margin': '20px'},
+            ),
             dcc.Dropdown(
-                id='my-dropdown',
+                id='metric_dropdown',
                 options=[
                     {
                         'label': 'Top 10 Tags',
-                        'value': 'select tag_name, cnt from dim_tags limit 10',
+                        'value': 'P;select tag_name, cnt from dim_tags limit 10',
                     },
                     {
-                    'label': 'Posts Per Year (Slow About  ~1 min)',
-                    'value': "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
+                        'label': 'Questions Posted',
+                        'value': '''D;
+                            SELECT 
+                                {{ time_groupby }},
+                                count(1) as cnt 
+                            FROM dim_posts 
+                            WHERE _PostTypeId = 1 
+                                AND {{ date_filter }}
+                            GROUP BY
+                                {{ time_groupby }}
+                            ORDER BY
+                                1
+                        ''',
+                    },
+                    {
+                        'label': 'Answers Posted',
+                        'value': '''D;
+                            SELECT 
+                                {{ time_groupby }},
+                                count(1) as cnt 
+                            FROM dim_posts 
+                            WHERE _PostTypeId = 2
+                                AND {{ date_filter }}
+                            GROUP BY
+                                {{ time_groupby }}
+                            ORDER BY
+                                1
+                        ''',
                     },
                 ],
                 placeholder="Select a metric",
                 value='',
+                style={'margin': '20px'},
+            ),
+            html.H5(
+                children='Select a date period',
+                style={'margin': '20px'},
+            ),
+            dcc.DatePickerRange(
+                id='date_range',
+                min_date_allowed=datetime.datetime(2009, 1, 1),
+                max_date_allowed=datetime.datetime(2019, 12, 31),
+                start_date=datetime.datetime(2009, 1, 1),
+                end_date=datetime.datetime(2020, 12, 31),
+                style={'margin': '20px'},
+            ),
+            html.H5(
+                children='Select Group By',
+                style={'margin': '20px'},
             ),
             dcc.Dropdown(
+                id="groupby_time_dropdown",
                 options=[
-                    {'label': 'New York City', 'value': 'NYC'},
-                    {'label': 'Montréal', 'value': 'MTL'},
-                    {'label': 'San Francisco', 'value': 'SF'}
+                    {'label': 'Year', 'value': "DATE_TRUNC('year', __time)"},
+                    {'label': 'Quarter', 'value': "DATE_TRUNC('quarter', __time)"},
+                    {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
+                    {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
+                    {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
+                    {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
                 ],
-                placeholder='Group By',
-                value='',
-            ),
-            dcc.Dropdown(
-                options=[
-                    {'label': 'New York City', 'value': 'NYC'},
-                    {'label': 'Montréal', 'value': 'MTL'},
-                    {'label': 'San Francisco', 'value': 'SF'}
-                ],
-                placeholder='Filter',
-                value='',
+                placeholder='Group By Time Range',
+                value="DATE_TRUNC('year', __time)",
+                style={'margin': '20px'},
             ),
             # BAR CHART
             dcc.Graph(
@@ -121,7 +164,8 @@ app.layout = html.Div([
                 config={
                     'showSendToCloud': True,
                     'plotlyServerURL': 'https://plot.ly'
-                }
+                },
+                style={'margin': '30px'},
             ),
         ]),
 
@@ -201,16 +245,50 @@ app.layout = html.Div([
 # Graph Line and Graph Bar Call Back
 @app.callback(
     [dash.dependencies.Output('graph_bar', 'figure')],
-    [dash.dependencies.Input('my-dropdown', 'value')])
-def update_bar_output(value):
+    [
+        dash.dependencies.Input('metric_dropdown', 'value'),
+        dash.dependencies.Input('date_range', 'start_date'),
+        dash.dependencies.Input('date_range', 'end_date'),
+        dash.dependencies.Input('groupby_time_dropdown', 'value')
+    ])
+def update_bar_output(metric_sql, start_date, end_date, time_groupby):
     # sql = "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
     # sql = "select tag_name, cnt from dim_tags limit 10"
+    ### Rendoring SQL...
+    print("metric_sql", metric_sql)
+    # print("dates", start_date, end_date)
+    # print("time_groupby", time_groupby)
+    if len(metric_sql.split(";")) < 2:
+        return ({},)
+    engine, sql = metric_sql.split(";")[:2]
 
-    rows, dur = exec_presto(value)
-    # print("rows: ", rows)
+    date_filter = "__time BETWEEN '{}' AND '{}'".format(start_date, end_date)
 
-    x_values = [ row[0] for row in rows ]
-    y_values = [ row[1] for row in rows ]
+    rendered_sql = Template(sql).render(
+        time_groupby=time_groupby,
+        date_filter=date_filter,
+    )
+    print(rendered_sql)
+
+
+    ### Rendor SQL Finished
+    print("engine", engine, engine.lower(), engine.lower() == "d")
+    
+    if engine.lower() == "p":
+        engine_name = "Presto"
+        rows, dur = exec_presto(rendered_sql)
+        x_values = [ row[0] for row in rows[:1000] ]
+        y_values = [ row[1] for row in rows[:1000] ]
+
+    elif engine.lower() == "d":
+        engine_name = "Druid"
+        rows, dur = exec_druid(rendered_sql)
+        rows = json.loads(rows)
+        x_values = [ row["EXPR$0"] for row in rows[:1000] ]
+        y_values = [ row["cnt"] for row in rows[:1000] ]
+
+
+    title = "Query executed using {} engine. Total time spent {} seconds.".format(engine_name, dur)
 
     result_bar = {
         'data': [
@@ -224,7 +302,7 @@ def update_bar_output(value):
             ),
         ],
         'layout': go.Layout(
-            title='Bar Chart',
+            title=title,
             showlegend=True,
             legend=go.layout.Legend(
                 x=0,
@@ -233,7 +311,8 @@ def update_bar_output(value):
             margin=go.layout.Margin(l=40, r=0, t=40, b=30)
         ),
     }
-    return (result_bar,)
+    
+    return (result_bar, )
 
 
 # Comparing Presto and Druid for the same query
