@@ -71,19 +71,18 @@ app.layout = html.Div([
 
     html.H2(
         children="Product Metrics Platform",
-        style={'margin-left': '20px', 'margin-top': '0px'},
     ),
 
     html.H5(
         children="A web application to discover and explore predefined metrics fast and easily", 
-        style={'margin': '10px', 'margin-left': '40px', 'margin-bottom': '50px', 'color': 'gray'},
+        style={'margin-top': '30px', 'margin-bottom': '50px', 'color': 'gray'},
     ),
 
-    dcc.Tabs(id="tabs", style={'margin': '20px'}, children=[
+    dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Metrics Discovery', children=[
             html.H3(
                 children='Select a predefined metric and see result: ',
-                style={'margin': '20px'},
+                style={'margin': '20px 0'},
             ),
             dcc.Dropdown(
                 id='metric_dropdown',
@@ -137,11 +136,11 @@ app.layout = html.Div([
                 max_date_allowed=datetime.datetime(2019, 12, 31),
                 start_date=datetime.datetime(2009, 1, 1),
                 end_date=datetime.datetime(2020, 12, 31),
-                style={'margin': '20px'},
+                style={'margin': '20px 0'},
             ),
             html.H5(
                 children='Select Group By',
-                style={'margin': '20px'},
+                style={'margin': '20px 0'},
             ),
             dcc.Dropdown(
                 id="groupby_time_dropdown",
@@ -155,7 +154,7 @@ app.layout = html.Div([
                 ],
                 placeholder='Group By Time Range',
                 value="DATE_TRUNC('year', __time)",
-                style={'margin': '20px'},
+                style={'margin': '20px 0'},
             ),
             # BAR CHART
             dcc.Graph(
@@ -164,7 +163,7 @@ app.layout = html.Div([
                     'showSendToCloud': True,
                     'plotlyServerURL': 'https://plot.ly'
                 },
-                style={'margin': '30px'},
+                style={'margin': '30px 0'},
             ),
         ]),
 
@@ -233,7 +232,7 @@ app.layout = html.Div([
             ],
         ),
     ]),
-],style={'display':'block', 'width':'80%', 'margin':'0 auto'})
+])
 
 
 ################################################################################
