@@ -234,8 +234,8 @@ app.layout = html.Div([
                 html.H3(children='Druid Result: '),
                 html.Div(id='druid-state'),
                 html.P(),
-            ],
-        ], style={'display':'block', 'width':'80%', 'margin':'0 auto', 'min-height':'1500px'}),
+            ], style={'display':'block', 'width':'80%', 'margin':'0 auto', 'min-height':'1500px'}),
+        ]),
     ]),
 ])
 
