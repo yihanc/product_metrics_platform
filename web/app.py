@@ -80,55 +80,57 @@ app.layout = html.Div([
 
     dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Metrics Discovery', children=[
-            html.H3(
-                children='Select a predefined metric and see result: ',
-                style={'margin': '20px 0'},
-            ),
-            dcc.Dropdown(
-                id='metric_dropdown',
-                options=[
-                    {
-                        'label': 'Questions Posted',
-                        'value': '''D;
-                            SELECT 
-                                {{ time_groupby }},
-                                count(1) as cnt 
-                            FROM dim_posts 
-                            WHERE _PostTypeId = 1 
-                                AND {{ date_filter }}
-                            GROUP BY
-                                {{ time_groupby }}
-                            ORDER BY
-                                1
-                        ''',
-                    },
-                    {
-                        'label': 'Answers Posted',
-                        'value': '''D;
-                            SELECT 
-                                {{ time_groupby }},
-                                count(1) as cnt 
-                            FROM dim_posts 
-                            WHERE _PostTypeId = 2
-                                AND {{ date_filter }}
-                            GROUP BY
-                                {{ time_groupby }}
-                            ORDER BY
-                                1
-                        ''',
-                    },
-                    {
-                        'label': 'Top 10 Tags',
-                        'value': 'P;select tag_name, cnt from dim_tags limit 10',
-                    },
-                ],
-                placeholder="Select a metric",
-                value='',
-                style={'margin': '20px'},
-            ),
+            html.Div( children=[
+                html.H3(
+                    children='Select a predefined metric and see result: ',
+                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                ),
+                dcc.Dropdown(
+                    id='metric_dropdown',
+                    options=[
+                        {
+                            'label': 'Questions Posted',
+                            'value': '''D;
+                                SELECT 
+                                    {{ time_groupby }},
+                                    count(1) as cnt 
+                                FROM dim_posts 
+                                WHERE _PostTypeId = 1 
+                                    AND {{ date_filter }}
+                                GROUP BY
+                                    {{ time_groupby }}
+                                ORDER BY
+                                    1
+                            ''',
+                        },
+                        {
+                            'label': 'Answers Posted',
+                            'value': '''D;
+                                SELECT 
+                                    {{ time_groupby }},
+                                    count(1) as cnt 
+                                FROM dim_posts 
+                                WHERE _PostTypeId = 2
+                                    AND {{ date_filter }}
+                                GROUP BY
+                                    {{ time_groupby }}
+                                ORDER BY
+                                    1
+                            ''',
+                        },
+                        {
+                            'label': 'Top 10 Tags',
+                            'value': 'P;select tag_name, cnt from dim_tags limit 10',
+                        },
+                    ],
+                    placeholder="Select a metric",
+                    value='',
+                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                ),
+            ],style={'display':'block', 'width':'80%', 'margin':'0 auto'}),
             html.H5(
                 children='Select a date period',
-                style={'margin': '20px'},
+                style={'margin-top': '30px', 'margin-bottom': '30px'},
             ),
             dcc.DatePickerRange(
                 id='date_range',
@@ -136,11 +138,11 @@ app.layout = html.Div([
                 max_date_allowed=datetime.datetime(2019, 12, 31),
                 start_date=datetime.datetime(2009, 1, 1),
                 end_date=datetime.datetime(2020, 12, 31),
-                style={'margin': '20px 0'},
+                style={'margin-top': '30px', 'margin-bottom': '30px'},
             ),
             html.H5(
                 children='Select Group By',
-                style={'margin': '20px 0'},
+                style={'margin-top': '30px', 'margin-bottom': '30px'},
             ),
             dcc.Dropdown(
                 id="groupby_time_dropdown",
@@ -154,7 +156,7 @@ app.layout = html.Div([
                 ],
                 placeholder='Group By Time Range',
                 value="DATE_TRUNC('year', __time)",
-                style={'margin': '20px 0'},
+                style={'margin-top': '30px', 'margin-bottom': '30px'},
             ),
             # BAR CHART
             dcc.Graph(
@@ -163,7 +165,7 @@ app.layout = html.Div([
                     'showSendToCloud': True,
                     'plotlyServerURL': 'https://plot.ly'
                 },
-                style={'margin': '30px 0'},
+                style={'margin-top': '30px', 'margin-bottom': '30px'},
             ),
         ]),
 
