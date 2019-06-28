@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import dash
-import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 
-import requests, json, subprocess, prestodb, time, datetime
+import requests, json, prestodb, time, datetime
 from kafka import KafkaConsumer, TopicPartition, KafkaProducer
 from smart_open import open
 import lxml.etree
