@@ -209,7 +209,7 @@ app.layout = html.Div([
                 n_intervals=0,
             ),
             html.Div(id='hidden-div', style={'display':'none'})
-        ], style={'display':'block', 'width':'80%', 'margin':'0 auto'}),
+        ]),
 
         dcc.Tab(
             label='Adhoc Query - (Compare Druid and Presto)', 
@@ -233,7 +233,7 @@ app.layout = html.Div([
             ],
         ),
     ]),
-])
+],style={'display':'block', 'width':'80%', 'margin':'0 auto'})
 
 
 ################################################################################
