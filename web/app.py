@@ -83,7 +83,7 @@ app.layout = html.Div([
             html.Div(children=[
                 html.H3(
                     children='Select a predefined metric and see result: ',
-                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                    style={'margin-top': '20px', 'margin-bottom': '15px'},
                 ),
                 dcc.Dropdown(
                     id='metric_dropdown',
@@ -125,7 +125,7 @@ app.layout = html.Div([
                     ],
                     placeholder="Select a metric",
                     value='',
-                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
 
                 html.H5(
@@ -138,11 +138,11 @@ app.layout = html.Div([
                     max_date_allowed=datetime.datetime(2019, 12, 31),
                     start_date=datetime.datetime(2009, 1, 1),
                     end_date=datetime.datetime(2020, 12, 31),
-                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px'},
                 ),
                 html.H5(
                     children='Select Group By',
-                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px'},
                 ),
                 dcc.Dropdown(
                     id="groupby_time_dropdown",
@@ -156,7 +156,7 @@ app.layout = html.Div([
                     ],
                     placeholder='Group By Time Range',
                     value="DATE_TRUNC('year', __time)",
-                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
                 # BAR CHART
                 dcc.Graph(
@@ -165,7 +165,7 @@ app.layout = html.Div([
                         'showSendToCloud': True,
                         'plotlyServerURL': 'https://plot.ly'
                     },
-                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px'},
                 ),
             ], style={'display':'block', 'width':'80%', 'margin':'0 auto'}),
         ]),
