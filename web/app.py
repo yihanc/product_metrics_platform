@@ -127,46 +127,47 @@ app.layout = html.Div([
                     value='',
                     style={'margin-top': '30px', 'margin-bottom': '30px'},
                 ),
-            ],style={'display':'block', 'width':'80%', 'margin':'0 auto'}),
-            html.H5(
-                children='Select a date period',
-                style={'margin-top': '30px', 'margin-bottom': '30px'},
-            ),
-            dcc.DatePickerRange(
-                id='date_range',
-                min_date_allowed=datetime.datetime(2009, 1, 1),
-                max_date_allowed=datetime.datetime(2019, 12, 31),
-                start_date=datetime.datetime(2009, 1, 1),
-                end_date=datetime.datetime(2020, 12, 31),
-                style={'margin-top': '30px', 'margin-bottom': '30px'},
-            ),
-            html.H5(
-                children='Select Group By',
-                style={'margin-top': '30px', 'margin-bottom': '30px'},
-            ),
-            dcc.Dropdown(
-                id="groupby_time_dropdown",
-                options=[
-                    {'label': 'Year', 'value': "DATE_TRUNC('year', __time)"},
-                    {'label': 'Quarter', 'value': "DATE_TRUNC('quarter', __time)"},
-                    {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
-                    {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
-                    {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
-                    {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
-                ],
-                placeholder='Group By Time Range',
-                value="DATE_TRUNC('year', __time)",
-                style={'margin-top': '30px', 'margin-bottom': '30px'},
-            ),
-            # BAR CHART
-            dcc.Graph(
-                id='graph_bar',
-                config={
-                    'showSendToCloud': True,
-                    'plotlyServerURL': 'https://plot.ly'
-                },
-                style={'margin-top': '30px', 'margin-bottom': '30px'},
-            ),
+
+                html.H5(
+                    children='Select a date period',
+                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                ),
+                dcc.DatePickerRange(
+                    id='date_range',
+                    min_date_allowed=datetime.datetime(2009, 1, 1),
+                    max_date_allowed=datetime.datetime(2019, 12, 31),
+                    start_date=datetime.datetime(2009, 1, 1),
+                    end_date=datetime.datetime(2020, 12, 31),
+                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                ),
+                html.H5(
+                    children='Select Group By',
+                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                ),
+                dcc.Dropdown(
+                    id="groupby_time_dropdown",
+                    options=[
+                        {'label': 'Year', 'value': "DATE_TRUNC('year', __time)"},
+                        {'label': 'Quarter', 'value': "DATE_TRUNC('quarter', __time)"},
+                        {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
+                        {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
+                        {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
+                        {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
+                    ],
+                    placeholder='Group By Time Range',
+                    value="DATE_TRUNC('year', __time)",
+                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                ),
+                # BAR CHART
+                dcc.Graph(
+                    id='graph_bar',
+                    config={
+                        'showSendToCloud': True,
+                        'plotlyServerURL': 'https://plot.ly'
+                    },
+                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                ),
+            ], style={'display':'block', 'width':'80%', 'margin':'0 auto'}),
         ]),
 
         dcc.Tab(label='Live Data', children=[
