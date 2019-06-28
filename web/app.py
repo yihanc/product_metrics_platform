@@ -80,7 +80,7 @@ app.layout = html.Div([
 
     dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Metrics Discovery', children=[
-            html.Div( children=[
+            html.Div(children=[
                 html.H3(
                     children='Select a predefined metric and see result: ',
                     style={'margin-top': '30px', 'margin-bottom': '30px'},
@@ -125,7 +125,7 @@ app.layout = html.Div([
                     ],
                     placeholder="Select a metric",
                     value='',
-                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px', 'min-height':'1500px'},
                 ),
 
                 html.H5(
@@ -156,7 +156,7 @@ app.layout = html.Div([
                     ],
                     placeholder='Group By Time Range',
                     value="DATE_TRUNC('year', __time)",
-                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px', 'min-height':'1500px'},
                 ),
                 # BAR CHART
                 dcc.Graph(
@@ -171,51 +171,53 @@ app.layout = html.Div([
         ]),
 
         dcc.Tab(label='Live Data', children=[
-            html.H4('Control Button:'),
-            dcc.RadioItems(
-                id="live_control_button",
-                options=[
-                    {'label': 'Start Live Data', 'value': 'start'},
-                    {'label': 'Stop Live Data', 'value': 'stop'},
-                ],
-                value='start',
-                labelStyle={'display': 'inline-block'},
-                style={'margin': '20px', 'vertical-align': 'middle'},
-            ),
-            html.H4('Live Active Users per minute:'),
-            html.Div(
-                id='live_text',
-                style={'margin': '20px'},
-            ),
-            # LINE CHART
-            dcc.Graph(
-                id='live_graph_line',
-                config={
-                    'showSendToCloud': True,
-                    'plotlyServerURL': 'https://plot.ly'
-                },
-                style={'margin': '50px'},
-            ),
-            # BAR CHART
-            dcc.Graph(
-                id='live_graph_bar',
-                config={
-                    'showSendToCloud': True,
-                    'plotlyServerURL': 'https://plot.ly'
-                },
-                style={'margin': '50px'},
-            ),
-            dcc.Interval(
-                id='live_interval_component',
-                interval=5*1000, # in milliseconds
-                n_intervals=0,
-            ),
-            html.Div(id='hidden-div', style={'display':'none'})
+            html.Div(children=[
+                html.H4('Control Button:'),
+                dcc.RadioItems(
+                    id="live_control_button",
+                    options=[
+                        {'label': 'Start Live Data', 'value': 'start'},
+                        {'label': 'Stop Live Data', 'value': 'stop'},
+                    ],
+                    value='start',
+                    labelStyle={'display': 'inline-block'},
+                    style={'margin': '20px', 'vertical-align': 'middle'},
+                ),
+                html.H4('Live Active Users per minute:'),
+                html.Div(
+                    id='live_text',
+                    style={'margin': '20px'},
+                ),
+                # LINE CHART
+                dcc.Graph(
+                    id='live_graph_line',
+                    config={
+                        'showSendToCloud': True,
+                        'plotlyServerURL': 'https://plot.ly'
+                    },
+                    style={'margin': '50px'},
+                ),
+                # BAR CHART
+                dcc.Graph(
+                    id='live_graph_bar',
+                    config={
+                        'showSendToCloud': True,
+                        'plotlyServerURL': 'https://plot.ly'
+                    },
+                    style={'margin-top': '50px', 'margin-top': '50px'},
+                ),
+                dcc.Interval(
+                    id='live_interval_component',
+                    interval=5*1000, # in milliseconds
+                    n_intervals=0,
+                ),
+                html.Div(id='hidden-div', style={'display':'none'})
+            ], style={'display':'block', 'width':'80%', 'margin':'0 auto'})
         ]),
 
         dcc.Tab(
-            label='Adhoc Query - (Compare Druid and Presto)', 
-            children=[
+            label='Adhoc Query - (Compare Druid and Presto)', children=[
+            html.Div(children=[
                 html.H3(children='Compare Presto and Druid Speed:'),
                 html.Div(children='''
                     Try type "select count(1) from dim_posts" and see the differences..
@@ -225,7 +227,7 @@ app.layout = html.Div([
                     placeholder='Enter a SQL query... eg: select * from sample limit 10',
                     style={'width': '60%'}
                 ),
-                html.Button(id='submit-button', n_clicks=0, children='Submit'),
+                dbc.Button(id='submit-button', n_clicks=0, children='Submit'),
                 html.H3(children='Presto Result:'),
                 html.Div(id='presto-state'),
                 html.P(),
@@ -233,7 +235,7 @@ app.layout = html.Div([
                 html.Div(id='druid-state'),
                 html.P(),
             ],
-        ),
+        ], style={'display':'block', 'width':'80%', 'margin':'0 auto', 'min-height':'1500px'}),
     ]),
 ])
 
