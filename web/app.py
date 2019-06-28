@@ -125,7 +125,7 @@ app.layout = html.Div([
                     ],
                     placeholder="Select a metric",
                     value='',
-                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px', 'min-height':'1500px'},
+                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
 
                 html.H5(
@@ -156,7 +156,7 @@ app.layout = html.Div([
                     ],
                     placeholder='Group By Time Range',
                     value="DATE_TRUNC('year', __time)",
-                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px', 'min-height':'1500px'},
+                    style={'margin-top': '30px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
                 # BAR CHART
                 dcc.Graph(
