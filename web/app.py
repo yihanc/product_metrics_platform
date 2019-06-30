@@ -33,7 +33,7 @@ navbar = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src=PLOTLY_LOGO, height="50px")),
-                        dbc.Col(dbc.NavbarBrand("Product Metrics Platform", className="ml-2")),
+                        dbc.Col(dbc.NavbarBrand("Metrics as a Service", className="ml-2")),
                     ],
                     align="true",
                     no_gutters=True,
@@ -70,7 +70,7 @@ app.layout = html.Div([
     navbar,
 
     html.H2(
-        children="Product Metrics Platform",
+        children="Metrics as a Service",
     ),
 
     html.H5(
