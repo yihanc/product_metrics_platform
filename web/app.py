@@ -152,7 +152,7 @@ app.layout = html.Div([
                         {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
                         {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
                         {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
-                        {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
+                        # {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
                     ],
                     placeholder='Group By Time Range',
                     value="DATE_TRUNC('year', __time)",
@@ -255,12 +255,7 @@ app.layout = html.Div([
         dash.dependencies.Input('groupby_time_dropdown', 'value')
     ])
 def update_bar_output(metric_sql, start_date, end_date, time_groupby):
-    # sql = "select SUBSTR(creation_date,1,4) as year, count(1) as cnt from dim_posts group by 1 order by year"
-    # sql = "select tag_name, cnt from dim_tags limit 10"
     ### Rendoring SQL...
-    print("metric_sql", metric_sql)
-    # print("dates", start_date, end_date)
-    # print("time_groupby", time_groupby)
     if len(metric_sql.split(";")) < 2:
         return ({},)
     engine, sql = metric_sql.split(";")[:2]
@@ -271,11 +266,9 @@ def update_bar_output(metric_sql, start_date, end_date, time_groupby):
         time_groupby=time_groupby,
         date_filter=date_filter,
     )
-    print(rendered_sql)
 
 
     ### Rendor SQL Finished
-    print("engine", engine, engine.lower(), engine.lower() == "d")
     
     if engine.lower() == "p":
         engine_name = "Presto"
@@ -363,11 +356,10 @@ def get_druid_state(n_clicks, sql):
     [Input('live_interval_component', 'n_intervals'),
     Input('live_control_button', 'value')])
 def kafka_producer_active_user(n_intervals, value):
-    print("kafka, ", value)
     if value == "stop":
         return
     
-    producer = KafkaProducer(bootstrap_servers='172.31.7.229:9092')
+    producer = KafkaProducer(bootstrap_servers='54.189.125.21:9092')
     s3_url = 's3://stackoverflow-ds/PostHistory_rt.xml'
 
     stop = randint(5, 50)  # Random generate n events in 5 sec
@@ -386,7 +378,6 @@ def kafka_producer_active_user(n_intervals, value):
         now = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S.000')
         row['_CreationDate'] = now
         parsed = json.dumps(row)
-        # print(parsed)
 
         # Send message to Kafka Topic
         producer.send('posthistory', parsed.encode('utf-8'))
@@ -486,7 +477,7 @@ def exec_presto(sql):
         return [], 0
     # Demo Only. Should come from a config file
     conn=prestodb.dbapi.connect(
-        host='localhost',
+        host='54.69.164.133',
         port=8889,
         user='hadoop',
         catalog='hive',
@@ -501,7 +492,6 @@ def exec_presto(sql):
 def exec_druid(sql):
     start = time.clock()
     msg = json.dumps({'query': sql})
-    # print("msg: ", msg)
     headers = {
         'content-type':'application/json'
     }
@@ -509,7 +499,6 @@ def exec_druid(sql):
     # Demo Only. Should come from a config file
     druid_url = 'http://34.211.45.55:8082/druid/v2/sql/'
     r = requests.post(url=druid_url, data=msg, headers=headers)
-    # print("r: ", r, r.text)
     return r.text, time.clock() - start
  
 # Load live data from Kafka
@@ -518,7 +507,7 @@ def kafka_load_dau(seconds=1800):
 
     consumer = KafkaConsumer(
         'posthistory', 
-        bootstrap_servers=['172.31.7.229:9092'], 
+        bootstrap_servers=['54.189.125.21:9092'], 
         auto_offset_reset='earliest', 
         enable_auto_commit=True, 
         auto_commit_interval_ms=1000
@@ -546,4 +535,4 @@ def kafka_load_dau(seconds=1800):
 ################################################################################
 if __name__ == '__main__':
     # Since it is demo, running on port 80 directly
-    app.run_server(debug=True, host='0.0.0.0', port=80)
+    app.run_server(debug=True, port=8050)

@@ -7,7 +7,7 @@ from datetime import datetime
 from kafka import KafkaProducer
 from random import randint
 
-producer = KafkaProducer(bootstrap_servers='172.31.7.229:9092')
+producer = KafkaProducer(bootstrap_servers='kafka:9092')
 
 n = randint(5, 50)  # Random generate n events in 5 sec
 next_pause = n
