@@ -193,16 +193,16 @@ app.layout = html.Div([
 
                 # Limit 
                 html.H5(
-                    children='Select Limit Value',
+                    children='Enter Limit Value',
                     style={'margin-top': '15px', 'margin-bottom': '15px'},
                 ),
 
                 dcc.Input(
-                    id="limit_input",
+                    id="limit_text",
                     placeholder='Enter a limit value...',
                     type='number',
                     value='1000',
-                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px'},
                 ),
 
                 # Query Output 
@@ -306,16 +306,16 @@ app.layout = html.Div([
 # Metrics Tab - Update Graph
 @app.callback(
     [dash.dependencies.Output('graph_bar', 'figure'),
-    dash.dependencies.Output('query_text', 'children'),
-    dash.dependencies.Output('query_text_stat', 'children')],
+    dash.dependencies.Output('query_text', 'children'),],
     [
         dash.dependencies.Input('metric_dropdown', 'value'),
         dash.dependencies.Input('date_range', 'start_date'),
         dash.dependencies.Input('date_range', 'end_date'),
         dash.dependencies.Input('groupby_time_dropdown', 'value'),
-        dash.dependencies.Input('limit_input', 'value'),
+        dash.dependencies.Input('limit_text', 'value'),
     ])
 def update_bar_output(name, start_date, end_date, time_groupby, limit):
+    limit = 10
     ### Rendoring SQL...
     if name not in metrics_config:
         return ({}, "")
@@ -351,7 +351,7 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
         y_values = [ row["cnt"] for row in rows[:1000] ]
 
 
-    sql = "Query executed using {} engine. Total time spent {} seconds.".format(engine_name, dur)
+    title = "Query executed using {} engine. Total time spent {} seconds.".format(engine_name, dur)
 
     # Return result based on if it is Vertical Bar or Horizontal Bar
 
@@ -361,6 +361,7 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
                 go.Bar(
                     x=x_values,
                     y=y_values,
+                    title=title,
                     marker=go.bar.Marker(
                         color='rgb(55, 83, 109)'
                     ),
@@ -382,6 +383,7 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
                 go.Bar(
                     x=y_values,
                     y=x_values,
+                    title=title,
                     marker=go.bar.Marker(
                         color='rgb(55, 83, 109)'
                     ),
