@@ -34,7 +34,6 @@ metrics_config = {
                 {{ time_groupby }}
             ORDER BY
                 1
-            LIMIT {{ limit }}
         """,
         "bar_graph_orientation": "v",
     },
@@ -51,14 +50,13 @@ metrics_config = {
                 {{ time_groupby }}
             ORDER BY
                 1
-            LIMIT {{ limit }}
         ''',
         "bar_graph_orientation": "v",
     },
     "top_tags": {
         "engine": "P",
         "sql_template": '''
-            SELECT tag_name, cnt FROM dim_tags ORDER BY cnt desc LIMIT {{ limit }}
+            SELECT tag_name, cnt FROM dim_tags ORDER BY cnt desc LIMIT 20
         ''',
         "bar_graph_orientation": "h",
     }
@@ -191,20 +189,6 @@ app.layout = html.Div([
                     style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
 
-                # Limit 
-                html.H5(
-                    children='Enter Limit Value',
-                    style={'margin-top': '15px', 'margin-bottom': '15px'},
-                ),
-
-                dcc.Input(
-                    id="limit_text",
-                    placeholder='Enter a limit value...',
-                    type='number',
-                    value='1000',
-                    style={'margin-top': '15px', 'margin-bottom': '15px'},
-                ),
-
                 # Query Output 
                 html.H5(
                     children="Metric SQL Query is: ",
@@ -312,9 +296,8 @@ app.layout = html.Div([
         dash.dependencies.Input('date_range', 'start_date'),
         dash.dependencies.Input('date_range', 'end_date'),
         dash.dependencies.Input('groupby_time_dropdown', 'value'),
-        dash.dependencies.Input('limit_text', 'value'),
     ])
-def update_bar_output(name, start_date, end_date, time_groupby, limit):
+def update_bar_output(name, start_date, end_date, time_groupby):
     ### Rendoring SQL...
     if name not in metrics_config:
         return ({}, "")
@@ -328,7 +311,6 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
     rendered_sql = Template(sql).render(
         time_groupby=time_groupby,
         date_filter=date_filter,
-        limit=limit,
     )
 
     print(rendered_sql)
