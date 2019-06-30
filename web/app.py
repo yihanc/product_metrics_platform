@@ -211,9 +211,9 @@ app.layout = html.Div([
                     style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
 
-                html.H5(
+                html.P(
                     id="query_text",
-                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px'},
                 ),
 
                 # BAR CHART
@@ -315,7 +315,6 @@ app.layout = html.Div([
         dash.dependencies.Input('limit_text', 'value'),
     ])
 def update_bar_output(name, start_date, end_date, time_groupby, limit):
-    limit = 10
     ### Rendoring SQL...
     if name not in metrics_config:
         return ({}, "")
@@ -361,7 +360,6 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
                 go.Bar(
                     x=x_values,
                     y=y_values,
-                    title=title,
                     marker=go.bar.Marker(
                         color='rgb(55, 83, 109)'
                     ),
@@ -369,6 +367,7 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
                 ),
             ],
             'layout': go.Layout(
+                title=title,
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -383,7 +382,6 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
                 go.Bar(
                     x=y_values,
                     y=x_values,
-                    title=title,
                     marker=go.bar.Marker(
                         color='rgb(55, 83, 109)'
                     ),
@@ -391,6 +389,7 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
                 ),
             ],
             'layout': go.Layout(
+                title=title,
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -400,7 +399,7 @@ def update_bar_output(name, start_date, end_date, time_groupby, limit):
             ),
         }
     
-    return (result_bar, rendered_sql, title)
+    return (result_bar, rendered_sql)
 
 
 # Adhoc Tab - Presto callback
