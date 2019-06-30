@@ -14,6 +14,55 @@ import lxml.etree
 from random import randint
 from jinja2 import Template
 
+################################################################################
+###
+### Metrics Definitations
+###
+################################################################################
+
+metrics_config = {
+    "questions_posted": {
+        "engine": "D",
+        "sql_template": """
+            SELECT
+                {{ time_groupby }},
+                count(1) as cnt
+            FROM dim_posts
+            WHERE _PostTypeId = 1
+                AND {{ date_filter }}
+            GROUP BY
+                {{ time_groupby }}
+            ORDER BY
+                1
+            LIMIT {{ limit }}
+        """,
+        "bar_graph_orientation": "v",
+    },
+    "answers_posted": {
+        "engine": "D",
+        "sql_template": '''
+            SELECT
+                {{ time_groupby }},
+                count(1) as cnt
+            FROM dim_posts
+            WHERE _PostTypeId = 2
+                AND {{ date_filter }}
+            GROUP BY
+                {{ time_groupby }}
+            ORDER BY
+                1
+            LIMIT {{ limit }}
+        ''',
+        "bar_graph_orientation": "v",
+    },
+    "top_tags": {
+        "engine": "P",
+        "sql_template": '''
+            SELECT tag_name, cnt FROM dim_tags ORDER BY cnt desc LIMIT {{ limit }}
+        ''',
+        "bar_graph_orientation": "h",
+    }
+}
 
 
 ################################################################################
@@ -81,6 +130,8 @@ app.layout = html.Div([
     dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Metrics Discovery', children=[
             html.Div(children=[
+
+                # Select a metric
                 html.H3(
                     children='Select a predefined metric and see result: ',
                     style={'margin-top': '20px', 'margin-bottom': '15px'},
@@ -90,37 +141,15 @@ app.layout = html.Div([
                     options=[
                         {
                             'label': 'Questions Posted',
-                            'value': '''D;
-                                SELECT 
-                                    {{ time_groupby }},
-                                    count(1) as cnt 
-                                FROM dim_posts 
-                                WHERE _PostTypeId = 1 
-                                    AND {{ date_filter }}
-                                GROUP BY
-                                    {{ time_groupby }}
-                                ORDER BY
-                                    1
-                            ''',
+                            'value': "questions_posted",
                         },
                         {
                             'label': 'Answers Posted',
-                            'value': '''D;
-                                SELECT 
-                                    {{ time_groupby }},
-                                    count(1) as cnt 
-                                FROM dim_posts 
-                                WHERE _PostTypeId = 2
-                                    AND {{ date_filter }}
-                                GROUP BY
-                                    {{ time_groupby }}
-                                ORDER BY
-                                    1
-                            ''',
+                            'value': "answers_posted",
                         },
                         {
-                            'label': 'Top 10 Tags',
-                            'value': 'P;select tag_name, cnt from dim_tags limit 10',
+                            'label': 'Top Tags',
+                            'value': "top_tags",
                         },
                     ],
                     placeholder="Select a metric",
@@ -128,6 +157,7 @@ app.layout = html.Div([
                     style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
 
+                # Filter Time Period
                 html.H5(
                     children='Select a date period',
                     style={'margin-top': '30px', 'margin-bottom': '30px'},
@@ -140,6 +170,8 @@ app.layout = html.Div([
                     end_date=datetime.datetime(2020, 12, 31),
                     style={'margin-top': '15px', 'margin-bottom': '15px'},
                 ),
+
+                # Group By
                 html.H5(
                     children='Select Group By',
                     style={'margin-top': '15px', 'margin-bottom': '15px'},
@@ -158,6 +190,32 @@ app.layout = html.Div([
                     value="DATE_TRUNC('year', __time)",
                     style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
+
+                # Limit 
+                html.H5(
+                    children='Select Limit Value',
+                    style={'margin-top': '15px', 'margin-bottom': '15px'},
+                ),
+
+                dcc.Input(
+                    id="limit_input",
+                    placeholder='Enter a limit value...',
+                    type='number',
+                    value='1000',
+                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                ),
+
+                # Query Output 
+                html.H5(
+                    children="Metric SQL Query is: ",
+                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                ),
+
+                html.H5(
+                    id="query_text",
+                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                ),
+
                 # BAR CHART
                 dcc.Graph(
                     id='graph_bar',
@@ -165,7 +223,7 @@ app.layout = html.Div([
                         'showSendToCloud': True,
                         'plotlyServerURL': 'https://plot.ly'
                     },
-                    style={'margin-top': '15px', 'margin-bottom': '15px'},
+                    style={'margin-top': '15px', 'margin-bottom': '15px', 'height': '500px'},
                 ),
             ], style={'display':'block', 'width':'80%', 'margin':'0 auto'}),
         ]),
@@ -245,27 +303,36 @@ app.layout = html.Div([
 ### CALLBACKS
 ###
 ################################################################################
-# Graph Line and Graph Bar Call Back
+# Metrics Tab - Update Graph
 @app.callback(
-    [dash.dependencies.Output('graph_bar', 'figure')],
+    [dash.dependencies.Output('graph_bar', 'figure'),
+    dash.dependencies.Output('query_text', 'children'),
+    dash.dependencies.Output('query_text_stat', 'children')],
     [
         dash.dependencies.Input('metric_dropdown', 'value'),
         dash.dependencies.Input('date_range', 'start_date'),
         dash.dependencies.Input('date_range', 'end_date'),
-        dash.dependencies.Input('groupby_time_dropdown', 'value')
+        dash.dependencies.Input('groupby_time_dropdown', 'value'),
+        dash.dependencies.Input('limit_input', 'value'),
     ])
-def update_bar_output(metric_sql, start_date, end_date, time_groupby):
+def update_bar_output(name, start_date, end_date, time_groupby, limit):
     ### Rendoring SQL...
-    if len(metric_sql.split(";")) < 2:
-        return ({},)
-    engine, sql = metric_sql.split(";")[:2]
+    if name not in metrics_config:
+        return ({}, "")
+    metric = metrics_config[name]
+    engine = metric["engine"]
+    sql = metric["sql_template"]
+    bar_graph_orientation = metric["bar_graph_orientation"]
 
     date_filter = "__time BETWEEN '{}' AND '{}'".format(start_date, end_date)
 
     rendered_sql = Template(sql).render(
         time_groupby=time_groupby,
         date_filter=date_filter,
+        limit=limit,
     )
+
+    print(rendered_sql)
 
 
     ### Rendor SQL Finished
@@ -273,7 +340,7 @@ def update_bar_output(metric_sql, start_date, end_date, time_groupby):
     if engine.lower() == "p":
         engine_name = "Presto"
         rows, dur = exec_presto(rendered_sql)
-        x_values = [ row[0] for row in rows[:1000] ]
+        x_values = [ row[0] for row in rows[:1000] ]    # Limit output to 1000 elements only
         y_values = [ row[1] for row in rows[:1000] ]
 
     elif engine.lower() == "d":
@@ -284,34 +351,57 @@ def update_bar_output(metric_sql, start_date, end_date, time_groupby):
         y_values = [ row["cnt"] for row in rows[:1000] ]
 
 
-    title = "Query executed using {} engine. Total time spent {} seconds.".format(engine_name, dur)
+    sql = "Query executed using {} engine. Total time spent {} seconds.".format(engine_name, dur)
 
-    result_bar = {
-        'data': [
-            go.Bar(
-                x=x_values,
-                y=y_values,
-                name='Bar',
-                marker=go.bar.Marker(
-                    color='rgb(55, 83, 109)'
-                )
+    # Return result based on if it is Vertical Bar or Horizontal Bar
+
+    if bar_graph_orientation == "v":
+        result_bar = {
+            'data': [
+                go.Bar(
+                    x=x_values,
+                    y=y_values,
+                    marker=go.bar.Marker(
+                        color='rgb(55, 83, 109)'
+                    ),
+                    orientation=bar_graph_orientation
+                ),
+            ],
+            'layout': go.Layout(
+                showlegend=True,
+                legend=go.layout.Legend(
+                    x=0,
+                    y=1.0
+                ),
+                margin=go.layout.Margin(l=40, r=0, t=40, b=30)
             ),
-        ],
-        'layout': go.Layout(
-            title=title,
-            showlegend=True,
-            legend=go.layout.Legend(
-                x=0,
-                y=1.0
+        }
+    else:
+        result_bar = {
+            'data': [
+                go.Bar(
+                    x=y_values,
+                    y=x_values,
+                    marker=go.bar.Marker(
+                        color='rgb(55, 83, 109)'
+                    ),
+                    orientation=bar_graph_orientation
+                ),
+            ],
+            'layout': go.Layout(
+                showlegend=True,
+                legend=go.layout.Legend(
+                    x=0,
+                    y=1.0
+                ),
+                margin=go.layout.Margin(l=40, r=0, t=40, b=30)
             ),
-            margin=go.layout.Margin(l=40, r=0, t=40, b=30)
-        ),
-    }
+        }
     
-    return (result_bar, )
+    return (result_bar, rendered_sql, title)
 
 
-# Comparing Presto and Druid for the same query
+# Adhoc Tab - Presto callback
 @app.callback(Output('presto-state', 'children'),
               [Input('submit-button', 'n_clicks')],
               [State('sql-state', 'value'),])
@@ -331,6 +421,7 @@ def get_presto_state(n_clicks, sql):
     '''.format(n_clicks, sql, dur, presto_result)
 
 
+# Adhoc Tab - Druid callback
 @app.callback(Output('druid-state', 'children'),
               [Input('submit-button', 'n_clicks')],
               [State('sql-state', 'value'),])
@@ -387,6 +478,7 @@ def kafka_producer_active_user(n_intervals, value):
     return
             
 
+# Live Text 
 @app.callback(Output('live_text', 'children'),
               [Input('live_interval_component', 'n_intervals')])
 def update_metrics(n):
@@ -400,7 +492,7 @@ def update_metrics(n):
     return [ html.Span('{} Active Users'.format(now_dau), style=style)]
 
 
-# Multiple components can update everytime interval gets fired.
+# Live Chart
 @app.callback(
     [Output('live_graph_line', 'figure'),
     Output('live_graph_bar', 'figure')],
