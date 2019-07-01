@@ -35,6 +35,8 @@ metrics_config = {
             ORDER BY
                 1
         """,
+        "time_filter_enabled": True, 
+        "time_groupby_enabled": True,
         "bar_graph_orientation": "v",
     },
     "answers_posted": {
@@ -51,6 +53,8 @@ metrics_config = {
             ORDER BY
                 1
         ''',
+        "time_filter_enabled": True, 
+        "time_groupby_enabled": True,
         "bar_graph_orientation": "v",
     },
     "top_tags": {
@@ -58,6 +62,8 @@ metrics_config = {
         "sql_template": '''
             SELECT tag_name, cnt FROM dim_tags ORDER BY cnt desc LIMIT 20
         ''',
+        "time_filter_enabled": False, 
+        "time_groupby_enabled": False,
         "bar_graph_orientation": "h",
     }
 }
@@ -106,12 +112,7 @@ navbar = dbc.Navbar(
 ### APP Start
 ###
 ################################################################################
-# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
-# app = dash.Dash(external_stylesheets=[dbc.themes.JOURNAL])
-# app = dash.Dash(external_stylesheets=[dbc.themes.SKETCHY])
-
-# app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div([
     navbar,
@@ -155,38 +156,51 @@ app.layout = html.Div([
                     style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
 
-                # Filter Time Period
-                html.H5(
-                    children='Select a date period',
-                    style={'margin-top': '30px', 'margin-bottom': '30px'},
-                ),
-                dcc.DatePickerRange(
-                    id='date_range',
-                    min_date_allowed=datetime.datetime(2009, 1, 1),
-                    max_date_allowed=datetime.datetime(2019, 12, 31),
-                    start_date=datetime.datetime(2009, 1, 1),
-                    end_date=datetime.datetime(2020, 12, 31),
-                    style={'margin-top': '15px', 'margin-bottom': '15px'},
+                # To be hidden if needed
+                html.Div(
+                    [
+                    # Time Filters
+                    html.H5(
+                        id='time_filter_text',
+                        children='Select a date period',
+                        style={'margin-top': '30px', 'margin-bottom': '30px'},
+                    ),
+                    dcc.DatePickerRange(
+                        id='time_filter',
+                        min_date_allowed=datetime.datetime(2009, 1, 1),
+                        max_date_allowed=datetime.datetime(2019, 12, 31),
+                        start_date=datetime.datetime(2009, 1, 1),
+                        end_date=datetime.datetime(2020, 12, 31),
+                        style={'margin-top': '15px', 'margin-bottom': '15px'},
+                    )],
+                    id='time_filter_div',
+                    style={'display': 'block'}
                 ),
 
-                # Group By
-                html.H5(
-                    children='Select Group By',
-                    style={'margin-top': '15px', 'margin-bottom': '15px'},
-                ),
-                dcc.Dropdown(
-                    id="groupby_time_dropdown",
-                    options=[
-                        {'label': 'Year', 'value': "DATE_TRUNC('year', __time)"},
-                        {'label': 'Quarter', 'value': "DATE_TRUNC('quarter', __time)"},
-                        {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
-                        {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
-                        {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
-                        # {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
-                    ],
-                    placeholder='Group By Time Range',
-                    value="DATE_TRUNC('year', __time)",
-                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                html.Div(
+                    [
+                    # Time Group By
+                    html.H5(
+                        id="time_groupby_text",
+                        children='Select Group By',
+                        style={'margin-top': '15px', 'margin-bottom': '15px'},
+                    ),
+                    dcc.Dropdown(
+                        id="time_groupby",
+                        options=[
+                            {'label': 'Year', 'value': "DATE_TRUNC('year', __time)"},
+                            {'label': 'Quarter', 'value': "DATE_TRUNC('quarter', __time)"},
+                            {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
+                            {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
+                            {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
+                            # {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
+                        ],
+                        placeholder='Group By Time Range',
+                        value="DATE_TRUNC('year', __time)",
+                        style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                    ), ], 
+                    id='time_groupby_div',
+                    style={'display': 'block'}
                 ),
 
                 # Query Output 
@@ -287,15 +301,39 @@ app.layout = html.Div([
 ### CALLBACKS
 ###
 ################################################################################
+
+
+@app.callback(
+    [ 
+        Output(component_id='time_filter_div', component_property='style'), 
+        Output(component_id='time_groupby_div', component_property='style'), 
+    ], 
+    [
+        Input('metric_dropdown', 'value')
+    ])
+def hide_menus(name):
+    if not name or name not in metrics_config:
+        return (None, None)
+    metric = metrics_config[name]
+    time_filter_enabled = metric["time_filter_enabled"]
+    time_groupby_enabled = metric["time_groupby_enabled"]
+
+    res_time_filter = {'display': 'block'} if time_filter_enabled else {'display': 'none'}
+    res_time_groupby = {'display': 'block'} if time_groupby_enabled else {'display': 'none'}
+
+
+    return (res_time_filter, res_time_groupby)
+
+
 # Metrics Tab - Update Graph
 @app.callback(
     [dash.dependencies.Output('graph_bar', 'figure'),
     dash.dependencies.Output('query_text', 'children'),],
     [
         dash.dependencies.Input('metric_dropdown', 'value'),
-        dash.dependencies.Input('date_range', 'start_date'),
-        dash.dependencies.Input('date_range', 'end_date'),
-        dash.dependencies.Input('groupby_time_dropdown', 'value'),
+        dash.dependencies.Input('time_filter', 'start_date'),
+        dash.dependencies.Input('time_filter', 'end_date'),
+        dash.dependencies.Input('time_groupby', 'value'),
     ])
 def update_bar_output(name, start_date, end_date, time_groupby):
     ### Rendoring SQL...
@@ -313,7 +351,7 @@ def update_bar_output(name, start_date, end_date, time_groupby):
         date_filter=date_filter,
     )
 
-    print(rendered_sql)
+    # print(rendered_sql)
 
 
     ### Rendor SQL Finished
@@ -412,6 +450,9 @@ def get_druid_state(n_clicks, sql):
     if not sql:
         return ''
     sql = sql.replace(';', '')
+
+    if "join" in sql.lower().split():   # Disable Druid 
+        return u'''Druid doesn't support join. Ignoring the query.'''
 
     druid_result, dur = exec_druid(sql)
 
@@ -547,7 +588,7 @@ def update_graph_live(n):
 ###
 ################################################################################
 def exec_presto(sql):
-    start = time.clock()
+    start = time.time()
     if not sql or len(sql) == 0:
         return [], 0
     # Demo Only. Should come from a config file
@@ -561,11 +602,11 @@ def exec_presto(sql):
     cur = conn.cursor()
     cur.execute(sql)
     result = cur.fetchall()
-    return result, time.clock() - start
+    return result, time.time() - start
     
 
 def exec_druid(sql):
-    start = time.clock()
+    start = time.time()
     msg = json.dumps({'query': sql})
     headers = {
         'content-type':'application/json'
@@ -574,7 +615,7 @@ def exec_druid(sql):
     # Demo Only. Should come from a config file
     druid_url = 'http://34.211.45.55:8082/druid/v2/sql/'
     r = requests.post(url=druid_url, data=msg, headers=headers)
-    return r.text, time.clock() - start
+    return r.text, time.time() - start
  
 # Load live data from Kafka
 def kafka_load_dau(seconds=1800):
@@ -609,5 +650,4 @@ def kafka_load_dau(seconds=1800):
 ###
 ################################################################################
 if __name__ == '__main__':
-    # Since it is demo, running on port 80 directly
-    app.run_server(debug=True, port=8050)
+    app.run_server(debug=True, host='0.0.0.0', port=8050)
