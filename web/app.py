@@ -35,7 +35,17 @@ metrics_config = {
                 WHERE _PostTypeId = 1
                     AND {{ time_filter }}
             ) p
-            {{ join_condition }}
+
+            {%- if other_filter_value is defined -%}
+            JOIN (
+                SELECT _Id, _Location
+                FROM dim_users
+                WHERE 
+                    {{ other_filter }} {}
+            ) u
+                ON p._OwnerUserId = u._Id
+            {% endif %}
+
             GROUP BY
                 {{ time_groupby }}
             ORDER BY
@@ -45,14 +55,6 @@ metrics_config = {
         "time_groupby_enabled": True,
         "other_filter_enabled": True,
         "bar_graph_orientation": "v",
-        "join_condition": '''
-            JOIN (
-                SELECT _Id, _Location
-                FROM dim_users
-                {{ other_filter }} {}
-            ) u
-                ON p._OwnerUserId = u._Id
-        '''
     },
     "answers_posted": {
         "engine": "D",
@@ -85,7 +87,7 @@ metrics_config = {
         "time_groupby_enabled": False,
         "other_filter_enabled": False,
         "bar_graph_orientation": "h",
-    }
+    },
 }
 
 
@@ -149,119 +151,123 @@ app.layout = html.Div([
     dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Metrics Discovery', children=[
             html.Div(children=[
+                html.Div( [     # Row 1
+                    html.Div( [     # Row 1 Col 1
+                        # Select a metric
+                        html.H3(
+                            children='Select a predefined metric: ',
+                            style={'margin-top': '20px', 'margin-bottom': '15px'},
+                        ),
+                        dcc.Dropdown(
+                            id='metric_dropdown',
+                            options=[
+                                {
+                                    'label': 'Questions Posted',
+                                    'value': "questions_posted",
+                                },
+                                {
+                                    'label': 'Answers Posted',
+                                    'value': "answers_posted",
+                                },
+                                {
+                                    'label': 'Top Tags',
+                                    'value': "top_tags",
+                                },
+                            ],
+                            placeholder="Select a metric",
+                            value='',
+                            style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                        ),
 
-                # Select a metric
-                html.H3(
-                    children='Select a predefined metric and see result: ',
-                    style={'margin-top': '20px', 'margin-bottom': '15px'},
-                ),
-                dcc.Dropdown(
-                    id='metric_dropdown',
-                    options=[
-                        {
-                            'label': 'Questions Posted',
-                            'value': "questions_posted",
-                        },
-                        {
-                            'label': 'Answers Posted',
-                            'value': "answers_posted",
-                        },
-                        {
-                            'label': 'Top Tags',
-                            'value': "top_tags",
-                        },
-                    ],
-                    placeholder="Select a metric",
-                    value='',
-                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
-                ),
+                        # To be hidden if needed
+                        html.Div(
+                            [
+                            # Time Filters
+                            html.H5(
+                                id='time_filter_text',
+                                children='Select a date period',
+                                style={'margin-top': '30px', 'margin-bottom': '30px'},
+                            ),
+                            dcc.DatePickerRange(
+                                id='time_filter',
+                                min_date_allowed=datetime.datetime(2009, 1, 1),
+                                max_date_allowed=datetime.datetime(2019, 12, 31),
+                                start_date=datetime.datetime(2009, 1, 1),
+                                end_date=datetime.datetime(2020, 12, 31),
+                                style={'margin-top': '15px', 'margin-bottom': '15px'},
+                            )],
+                            id='time_filter_div',
+                            style={'display': 'block'}
+                        ),
 
-                # To be hidden if needed
-                html.Div(
-                    [
-                    # Time Filters
-                    html.H5(
-                        id='time_filter_text',
-                        children='Select a date period',
-                        style={'margin-top': '30px', 'margin-bottom': '30px'},
-                    ),
-                    dcc.DatePickerRange(
-                        id='time_filter',
-                        min_date_allowed=datetime.datetime(2009, 1, 1),
-                        max_date_allowed=datetime.datetime(2019, 12, 31),
-                        start_date=datetime.datetime(2009, 1, 1),
-                        end_date=datetime.datetime(2020, 12, 31),
-                        style={'margin-top': '15px', 'margin-bottom': '15px'},
-                    )],
-                    id='time_filter_div',
-                    style={'display': 'block'}
-                ),
+                        html.Div(
+                            [
+                            # Time Group By
+                            html.H5(
+                                id="time_groupby_text",
+                                children='Select Group By',
+                                style={'margin-top': '15px', 'margin-bottom': '15px'},
+                            ),
+                            dcc.Dropdown(
+                                id="time_groupby",
+                                options=[
+                                    {'label': 'Year', 'value': "DATE_TRUNC('year', __time)"},
+                                    {'label': 'Quarter', 'value': "DATE_TRUNC('quarter', __time)"},
+                                    {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
+                                    {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
+                                    {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
+                                    # {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
+                                ],
+                                placeholder='Group By Time Range',
+                                value="DATE_TRUNC('year', __time)",
+                                style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                            ), ], 
+                            id='time_groupby_div',
+                            style={'display': 'block'},
+                        ),
 
-                html.Div(
-                    [
-                    # Time Group By
-                    html.H5(
-                        id="time_groupby_text",
-                        children='Select Group By',
-                        style={'margin-top': '15px', 'margin-bottom': '15px'},
-                    ),
-                    dcc.Dropdown(
-                        id="time_groupby",
-                        options=[
-                            {'label': 'Year', 'value': "DATE_TRUNC('year', __time)"},
-                            {'label': 'Quarter', 'value': "DATE_TRUNC('quarter', __time)"},
-                            {'label': 'Month', 'value': "DATE_TRUNC('month', __time)"},
-                            {'label': 'Week', 'value': "DATE_TRUNC('week', __time)"},
-                            {'label': 'Day', 'value': "DATE_TRUNC('day', __time)"},
-                            # {'label': 'Hour', 'value': "DATE_TRUNC('hour', __time)"},
-                        ],
-                        placeholder='Group By Time Range',
-                        value="DATE_TRUNC('year', __time)",
-                        style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
-                    ), ], 
-                    id='time_groupby_div',
-                    style={'display': 'block'},
-                ),
-
-                # Additional Filter
-                html.Div(
-                    [
                         # Additional Filter
-                        html.H5(
-                            id='other_filter_text',
-                            children='Select Filters From Other Table (Query may take ~1min)',
-                            style={'margin-top': '30px', 'margin-bottom': '30px'},
-                        ),
-                        dcc.Dropdown(
-                            id='other_filter',
-                            options=[
-                                {'label': 'dim_users._Location LIKE', 'value': "AND LOWER(_Location) like "},
+                        html.Div(
+                            [
+                                # Additional Filter
+                                html.H5(
+                                    id='other_filter_text',
+                                    children='Select Filters From Other Table (Query may take ~1min)',
+                                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                                ),
+                                dcc.Dropdown(
+                                    id='other_filter',
+                                    options=[
+                                        {'label': 'dim_users._Location LIKE', 'value': "LOWER(_Location) like "},
+                                    ],
+                                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                                ),
+                                dcc.Dropdown(
+                                    id="other_filter_value",
+                                    options=[
+                                        {'label': 'CA', 'value': """'%ca%'"""},
+                                        {'label': 'United States', 'value': """'%united states%'"""},
+                                    ],
+                                    placeholder='Select predefined value',
+                                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                                ),
                             ],
+                            id='other_filter_div',
+                            style={'display': 'block'},
+                        ),
+                    ], className="col"),
+
+                    html.Div( [     # Row 1 Col 2
+                        # Query Output 
+                        html.H3(
+                            children="Result:  ",
                             style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                         ),
-                        dcc.Dropdown(
-                            id="other_filter_value",
-                            options=[
-                                {'label': 'CA', 'value': """'%ca%'"""},
-                                {'label': 'United States', 'value': """'%united states%'"""},
-                            ],
-                            placeholder='Select predefined value',
-                            style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                        dcc.Markdown(
+                            id="query_result",
                         ),
-                    ],
-                    id='other_filter_div',
-                    style={'display': 'block'},
-                ),
-
-
-                # Query Output 
-                html.H5(
-                    children="Metric Result is: ",
-                    style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
-                ),
-                dcc.Markdown(
-                    id="query_result",
-                ),
+                    ], className='col'),
+                ], className='row', style={'height': '600px'} ),
 
                 # BAR CHART
                 dcc.Graph(
@@ -371,8 +377,7 @@ def hide_menus(name):
 
     res_time_filter = {'display': 'block'} if time_filter_enabled else {'display': 'none'}
     res_time_groupby = {'display': 'block'} if time_groupby_enabled else {'display': 'none'}
-    res_other_filter = {'display': 'block'} if time_groupby_enabled else {'display': 'none'}
-
+    res_other_filter = {'display': 'block'} if other_filter_enabled else {'display': 'none'}
 
     return (res_time_filter, res_time_groupby, res_other_filter)
 
@@ -404,21 +409,25 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
 
     time_filter = "__time BETWEEN '{}' AND '{}'".format(start_date, end_date)
 
-    join_condition = ""
-    if other_filter_value is not None and len(other_filter_value.strip()) != 0 and "join_condition" in metric:
-        join_condition = metric["join_condition"]
+#     join_condition = ""
+#     if other_filter_value is not None and len(other_filter_value.strip()) != 0 and "join_condition" in metric:
+#         join_condition = Template(
+#             metric["join_condition"]
+#         ).render(other_filter=other_filter).format(other_filter_value)
 
 
     # Determine if JOIN IS needed
-    if join_condition != "":
+    if other_filter_value is not None and len(other_filter_value.split()) > 0:
         engine = "p"
         time_groupby = time_groupby.replace("__time", "FROM_ISO8601_TIMESTAMP(__time)")
 
+    print("other_filter_value", other_filter_value)
+    print(sql)
     rendered_sql = Template(sql).render(
         time_groupby=time_groupby,
         time_filter=time_filter,
         other_filter=other_filter,
-        join_condition=join_condition,
+#        join_condition=join_condition,
     ).format(
         other_filter_value,
     )
@@ -428,7 +437,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
 
     ### Rendor SQL Finished
     
-    if engine.lower() == "p" or len(join_condition) != 0:
+    if engine.lower() == "p":
         engine_name = "Presto"
         rows, dur = exec_presto(rendered_sql)
         x_values = [ row[0] for row in rows[:1000] ]    # Limit output to 1000 elements only
@@ -443,13 +452,11 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
 
 
     markdown_result = dedent('''
-        ###### Metric SQL Query is: 
-          ``` {} ```
         ###### Query executed using **{}** engine.
-        ###### Total time spent is **{}** seconds.
-    '''.format(rendered_sql, engine_name, dur))
-
-    title = "Query executed using {} engine. Total time spent {} seconds.".format(engine_name, dur)
+        ###### Total time spent is {} seconds.
+        ###### SQL
+          ``` {} ```
+    '''.format(engine_name, dur, rendered_sql))
 
     # Return result based on if it is Vertical Bar or Horizontal Bar
 
@@ -466,7 +473,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
                 ),
             ],
             'layout': go.Layout(
-                title="Bar Chart",
+                title="Chart",
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -488,7 +495,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
                 ),
             ],
             'layout': go.Layout(
-                title="Bar Chart",
+                title="Chart",
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
