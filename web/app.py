@@ -13,6 +13,8 @@ from smart_open import open
 import lxml.etree
 from random import randint
 from jinja2 import Template
+from textwrap import dedent
+
 
 ################################################################################
 ###
@@ -27,9 +29,13 @@ metrics_config = {
             SELECT
                 {{ time_groupby }},
                 count(1) as cnt
-            FROM dim_posts
-            WHERE _PostTypeId = 1
-                AND {{ date_filter }}
+            FROM ( 
+                SELECT *
+                FROM dim_posts
+                WHERE _PostTypeId = 1
+                    AND {{ time_filter }}
+            ) p
+            {{ join_condition }}
             GROUP BY
                 {{ time_groupby }}
             ORDER BY
@@ -37,7 +43,16 @@ metrics_config = {
         """,
         "time_filter_enabled": True, 
         "time_groupby_enabled": True,
+        "other_filter_enabled": True,
         "bar_graph_orientation": "v",
+        "join_condition": '''
+            JOIN (
+                SELECT _Id, _Location
+                FROM dim_users
+                {{ other_filter }} {}
+            ) u
+                ON p._OwnerUserId = u._Id
+        '''
     },
     "answers_posted": {
         "engine": "D",
@@ -45,9 +60,9 @@ metrics_config = {
             SELECT
                 {{ time_groupby }},
                 count(1) as cnt
-            FROM dim_posts
+            FROM dim_posts p
             WHERE _PostTypeId = 2
-                AND {{ date_filter }}
+                AND {{ time_filter }}
             GROUP BY
                 {{ time_groupby }}
             ORDER BY
@@ -55,15 +70,20 @@ metrics_config = {
         ''',
         "time_filter_enabled": True, 
         "time_groupby_enabled": True,
+        "other_filter_enabled": False,
         "bar_graph_orientation": "v",
     },
     "top_tags": {
         "engine": "P",
         "sql_template": '''
-            SELECT tag_name, cnt FROM dim_tags ORDER BY cnt desc LIMIT 20
+            SELECT tag_name, cnt 
+            FROM dim_tags 
+            ORDER BY cnt desc 
+            LIMIT 20
         ''',
         "time_filter_enabled": False, 
         "time_groupby_enabled": False,
+        "other_filter_enabled": False,
         "bar_graph_orientation": "h",
     }
 }
@@ -200,18 +220,47 @@ app.layout = html.Div([
                         style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                     ), ], 
                     id='time_groupby_div',
-                    style={'display': 'block'}
+                    style={'display': 'block'},
                 ),
+
+                # Additional Filter
+                html.Div(
+                    [
+                        # Additional Filter
+                        html.H5(
+                            id='other_filter_text',
+                            children='Select Filters From Other Table (Query may take ~1min)',
+                            style={'margin-top': '30px', 'margin-bottom': '30px'},
+                        ),
+                        dcc.Dropdown(
+                            id='other_filter',
+                            options=[
+                                {'label': 'dim_users._Location LIKE', 'value': "AND LOWER(_Location) like "},
+                            ],
+                            style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                        ),
+                        dcc.Dropdown(
+                            id="other_filter_value",
+                            options=[
+                                {'label': 'CA', 'value': """'%ca%'"""},
+                                {'label': 'United States', 'value': """'%united states%'"""},
+                            ],
+                            placeholder='Select predefined value',
+                            style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                        ),
+                    ],
+                    id='other_filter_div',
+                    style={'display': 'block'},
+                ),
+
 
                 # Query Output 
                 html.H5(
-                    children="Metric SQL Query is: ",
+                    children="Metric Result is: ",
                     style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
                 ),
-
-                html.P(
-                    id="query_text",
-                    style={'margin-top': '15px', 'margin-bottom': '15px'},
+                dcc.Markdown(
+                    id="query_result",
                 ),
 
                 # BAR CHART
@@ -307,35 +356,40 @@ app.layout = html.Div([
     [ 
         Output(component_id='time_filter_div', component_property='style'), 
         Output(component_id='time_groupby_div', component_property='style'), 
+        Output(component_id='other_filter_div', component_property='style'), 
     ], 
     [
         Input('metric_dropdown', 'value')
     ])
 def hide_menus(name):
     if not name or name not in metrics_config:
-        return (None, None)
+        return (None, None, None)
     metric = metrics_config[name]
     time_filter_enabled = metric["time_filter_enabled"]
     time_groupby_enabled = metric["time_groupby_enabled"]
+    other_filter_enabled = metric["other_filter_enabled"]
 
     res_time_filter = {'display': 'block'} if time_filter_enabled else {'display': 'none'}
     res_time_groupby = {'display': 'block'} if time_groupby_enabled else {'display': 'none'}
+    res_other_filter = {'display': 'block'} if time_groupby_enabled else {'display': 'none'}
 
 
-    return (res_time_filter, res_time_groupby)
+    return (res_time_filter, res_time_groupby, res_other_filter)
 
 
 # Metrics Tab - Update Graph
 @app.callback(
     [dash.dependencies.Output('graph_bar', 'figure'),
-    dash.dependencies.Output('query_text', 'children'),],
+    dash.dependencies.Output('query_result', 'children'),],
     [
         dash.dependencies.Input('metric_dropdown', 'value'),
         dash.dependencies.Input('time_filter', 'start_date'),
         dash.dependencies.Input('time_filter', 'end_date'),
+        dash.dependencies.Input('other_filter', 'value'),
+        dash.dependencies.Input('other_filter_value', 'value'),
         dash.dependencies.Input('time_groupby', 'value'),
     ])
-def update_bar_output(name, start_date, end_date, time_groupby):
+def update_bar_output(name, start_date, end_date, other_filter, other_filter_value, time_groupby):
     ### Rendoring SQL...
     if name not in metrics_config:
         return ({}, "")
@@ -344,19 +398,37 @@ def update_bar_output(name, start_date, end_date, time_groupby):
     sql = metric["sql_template"]
     bar_graph_orientation = metric["bar_graph_orientation"]
 
-    date_filter = "__time BETWEEN '{}' AND '{}'".format(start_date, end_date)
+    if other_filter_value is None or other_filter_value.strip() == "":
+        other_filter_value = ""
+        other_filter = ""
+
+    time_filter = "__time BETWEEN '{}' AND '{}'".format(start_date, end_date)
+
+    join_condition = ""
+    if other_filter_value is not None and len(other_filter_value.strip()) != 0 and "join_condition" in metric:
+        join_condition = metric["join_condition"]
+
+
+    # Determine if JOIN IS needed
+    if join_condition != "":
+        engine = "p"
+        time_groupby = time_groupby.replace("__time", "FROM_ISO8601_TIMESTAMP(__time)")
 
     rendered_sql = Template(sql).render(
         time_groupby=time_groupby,
-        date_filter=date_filter,
+        time_filter=time_filter,
+        other_filter=other_filter,
+        join_condition=join_condition,
+    ).format(
+        other_filter_value,
     )
 
-    # print(rendered_sql)
+    print(rendered_sql)
 
 
     ### Rendor SQL Finished
     
-    if engine.lower() == "p":
+    if engine.lower() == "p" or len(join_condition) != 0:
         engine_name = "Presto"
         rows, dur = exec_presto(rendered_sql)
         x_values = [ row[0] for row in rows[:1000] ]    # Limit output to 1000 elements only
@@ -369,6 +441,13 @@ def update_bar_output(name, start_date, end_date, time_groupby):
         x_values = [ row["EXPR$0"] for row in rows[:1000] ]
         y_values = [ row["cnt"] for row in rows[:1000] ]
 
+
+    markdown_result = dedent('''
+        ###### Metric SQL Query is: 
+          ``` {} ```
+        ###### Query executed using **{}** engine.
+        ###### Total time spent is **{}** seconds.
+    '''.format(rendered_sql, engine_name, dur))
 
     title = "Query executed using {} engine. Total time spent {} seconds.".format(engine_name, dur)
 
@@ -387,7 +466,7 @@ def update_bar_output(name, start_date, end_date, time_groupby):
                 ),
             ],
             'layout': go.Layout(
-                title=title,
+                title="Bar Chart",
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -409,7 +488,7 @@ def update_bar_output(name, start_date, end_date, time_groupby):
                 ),
             ],
             'layout': go.Layout(
-                title=title,
+                title="Bar Chart",
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -419,7 +498,7 @@ def update_bar_output(name, start_date, end_date, time_groupby):
             ),
         }
     
-    return (result_bar, rendered_sql)
+    return (result_bar, markdown_result)
 
 
 # Adhoc Tab - Presto callback
