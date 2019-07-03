@@ -55,6 +55,7 @@ metrics_config = {
         "time_groupby_enabled": True,
         "other_filter_enabled": True,
         "bar_graph_orientation": "v",
+        "graph_title":"Number of Questions Posts",
     },
     "answers_posted": {
         "engine": "D",
@@ -74,6 +75,7 @@ metrics_config = {
         "time_groupby_enabled": True,
         "other_filter_enabled": False,
         "bar_graph_orientation": "v",
+        "graph_title":"Number of Answers Posts",
     },
     "top_tags": {
         "engine": "P",
@@ -87,6 +89,7 @@ metrics_config = {
         "time_groupby_enabled": False,
         "other_filter_enabled": False,
         "bar_graph_orientation": "h",
+        "graph_title":"Top Tags in posts",
     },
 }
 
@@ -414,6 +417,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
     engine = metric["engine"]
     sql = metric["sql_template"]
     bar_graph_orientation = metric["bar_graph_orientation"]
+    graph_title = metric["graph_title"]
 
     if other_filter_value is None or other_filter_value.strip() == "":
         other_filter_value = ""
@@ -478,7 +482,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
                 ),
             ],
             'layout': go.Layout(
-                title="Chart",
+                title=graph_title,
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -500,7 +504,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
                 ),
             ],
             'layout': go.Layout(
-                title="Chart",
+                title=graph_title,
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
