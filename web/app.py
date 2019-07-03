@@ -14,6 +14,8 @@ import lxml.etree
 from random import randint
 from jinja2 import Template
 from textwrap import dedent
+ 
+
 
 
 ################################################################################
@@ -268,6 +270,7 @@ app.layout = html.Div([
                 ], className='row', style={'height': '600px'} ),
 
                 # BAR CHART
+                dcc.Loading(id='query_result_loading'), 
                 dcc.Graph(
                     id='graph_bar',
                     config={
@@ -333,15 +336,23 @@ app.layout = html.Div([
                 '''),
                 dcc.Textarea(
                     id="sql-state",
-                    placeholder='Enter a SQL query... eg: select * from sample limit 10',
-                    style={'width': '60%'}
+                    placeholder='Enter a SQL query... eg: select * from dim_posts limit 10',
+                    style={'width': '60%'},
                 ),
                 dbc.Button(id='submit-button', n_clicks=0, children='Submit'),
                 html.H3(children='Presto Result:'),
-                html.Div(id='presto-state'),
+                html.Div(
+                    [
+                        dcc.Loading(id='presto-state') 
+                    ],
+                ),
                 html.P(),
                 html.H3(children='Druid Result: '),
-                html.Div(id='druid-state'),
+                html.Div(
+                    [
+                        dcc.Loading(id='druid-state')
+                    ],
+                ),
                 html.P(),
             ], style={'display':'block', 'width':'80%', 'margin':'0 auto', 'min-height':'1500px'}),
         ]),
@@ -382,20 +393,23 @@ def hide_menus(name):
 
 # Metrics Tab - Update Graph
 @app.callback(
-    [dash.dependencies.Output('graph_bar', 'figure'),
-    dash.dependencies.Output('query_result', 'children'),],
     [
-        dash.dependencies.Input('metric_dropdown', 'value'),
-        dash.dependencies.Input('time_filter', 'start_date'),
-        dash.dependencies.Input('time_filter', 'end_date'),
-        dash.dependencies.Input('other_filter', 'value'),
-        dash.dependencies.Input('other_filter_value', 'value'),
-        dash.dependencies.Input('time_groupby', 'value'),
+        Output('graph_bar', 'figure'),
+        Output('query_result', 'children'),
+        Output('query_result_loading', 'children'),
+    ],
+    [
+        Input('metric_dropdown', 'value'),
+        Input('time_filter', 'start_date'),
+        Input('time_filter', 'end_date'),
+        Input('other_filter', 'value'),
+        Input('other_filter_value', 'value'),
+        Input('time_groupby', 'value'),
     ])
 def update_bar_output(name, start_date, end_date, other_filter, other_filter_value, time_groupby):
     ### Rendoring SQL...
     if name not in metrics_config:
-        return ({}, "")
+        return ({}, "", "")
     metric = metrics_config[name]
     engine = metric["engine"]
     sql = metric["sql_template"]
@@ -496,26 +510,28 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
             ),
         }
     
-    return (result_bar, markdown_result)
+    return (result_bar, markdown_result, "")
 
 
 # Adhoc Tab - Presto callback
-@app.callback(Output('presto-state', 'children'),
-              [Input('submit-button', 'n_clicks')],
-              [State('sql-state', 'value'),])
+@app.callback([
+    Output('presto-state', 'children'),
+    ],
+    [Input('submit-button', 'n_clicks')],
+    [State('sql-state', 'value'),])
 def get_presto_state(n_clicks, sql):
     # Remove semicolons if any
     if not sql: 
-        return ''
+        return ('', )
     sql = sql.replace(';', '') 
 
     presto_result, dur = exec_presto(sql)
 
-    return u'''
+    return (u'''
         SQL is "{}",
         Query finished in {} seconds,
         Result is: "{}".
-    '''.format(sql, dur, presto_result)
+    '''.format(sql, dur, presto_result), )
 
 
 # Adhoc Tab - Druid callback
@@ -533,11 +549,10 @@ def get_druid_state(n_clicks, sql):
     druid_result, dur = exec_druid(sql)
 
     return u'''
-        The Button has been pressed {} times,
         SQL is "{}",
         Query finished in {} seconds,
         Result is: "{}".
-    '''.format(n_clicks, sql, dur, druid_result)
+    '''.format(sql, dur, druid_result)
 
 
 # Kafka Produce Live Data (Simulator)
