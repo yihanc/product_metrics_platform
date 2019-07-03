@@ -55,7 +55,7 @@ metrics_config = {
         "time_groupby_enabled": True,
         "other_filter_enabled": True,
         "bar_graph_orientation": "v",
-        "graph_title":"Number of Questions Posts",
+        "title":"Number of Questions Posts",
     },
     "answers_posted": {
         "engine": "D",
@@ -75,7 +75,7 @@ metrics_config = {
         "time_groupby_enabled": True,
         "other_filter_enabled": False,
         "bar_graph_orientation": "v",
-        "graph_title":"Number of Answers Posts",
+        "title":"Number of Answers Posts",
     },
     "top_tags": {
         "engine": "P",
@@ -89,9 +89,32 @@ metrics_config = {
         "time_groupby_enabled": False,
         "other_filter_enabled": False,
         "bar_graph_orientation": "h",
-        "graph_title":"Top Tags in posts",
+        "title":"Top Tags in posts",
+    },
+    "total_posts": {
+        "engine": "D",
+        "sql_template": '''
+            SELECT
+              {{ time_groupby }},
+              SUM(CASE WHEN _PostTypeId = 1 THEN 1 ELSE 0 END) AS questions,
+              SUM(CASE WHEN _PostTypeId = 2 THEN 1 ELSE 0 END) AS answers,
+              SUM(CASE WHEN _PostTypeId NOT IN (1,2) THEN 1 ELSE 0 END) AS other_posts
+            FROM dim_posts
+            WHERE
+               {{ time_filter }}
+            GROUP BY 
+                {{ time_groupby }}             
+            ORDER BY
+              1
+        ''',
+        "time_filter_enabled": True, 
+        "time_groupby_enabled": True,
+        "other_filter_enabled": False,
+        "bar_graph_orientation": "v",
+        "title":"Total Posts Created",
     },
 }
+
 
 
 ################################################################################
@@ -165,12 +188,16 @@ app.layout = html.Div([
                             id='metric_dropdown',
                             options=[
                                 {
-                                    'label': 'Answers Posted',
-                                    'value': "answers_posted",
-                                },
-                                {
                                     'label': 'Top Tags',
                                     'value': "top_tags",
+                                },
+                                {
+                                    'label': 'Total Posts Created (stacked)',
+                                    'value': "total_posts",
+                                },
+                                {
+                                    'label': 'Answers Posted',
+                                    'value': "answers_posted",
                                 },
                                 {
                                     'label': 'Questions Posted',
@@ -417,7 +444,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
     engine = metric["engine"]
     sql = metric["sql_template"]
     bar_graph_orientation = metric["bar_graph_orientation"]
-    graph_title = metric["graph_title"]
+    title = metric["title"]
 
     if other_filter_value is None or other_filter_value.strip() == "":
         other_filter_value = ""
@@ -440,11 +467,13 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
         other_filter_value,
     )
 
-    print("sql:", sql)
     print("rendered sql: ", rendered_sql)
 
 
     ### Rendor SQL Finished
+
+    if name == "total_posts":  # Special Graph 
+        return gen_total_posts_graph(engine, rendered_sql, title)
     
     if engine.lower() == "p":
         engine_name = "Presto"
@@ -459,13 +488,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
         x_values = [ row["EXPR$0"] for row in rows[:1000] ]
         y_values = [ row["cnt"] for row in rows[:1000] ]
 
-
-    markdown_result = dedent('''
-        ###### Query executed using **{}** engine.
-        ###### Total time spent is {} seconds.
-        ###### SQL
-          ``` {} ```
-    '''.format(engine_name, dur, rendered_sql))
+    markdown = gen_markdown(engine_name, dur, rendered_sql)
 
     # Return result based on if it is Vertical Bar or Horizontal Bar
 
@@ -482,7 +505,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
                 ),
             ],
             'layout': go.Layout(
-                title=graph_title,
+                title=title,
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -504,7 +527,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
                 ),
             ],
             'layout': go.Layout(
-                title=graph_title,
+                title=title,
                 showlegend=True,
                 legend=go.layout.Legend(
                     x=0,
@@ -514,7 +537,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
             ),
         }
     
-    return (result_bar, markdown_result, "")
+    return (result_bar, markdown, "")
 
 
 # Adhoc Tab - Presto callback
@@ -737,6 +760,62 @@ def kafka_load_dau(seconds=1800):
         if raw_msg.offset == end_offset:
             break
     return dau
+
+
+# Generate Customized Graph for All Posts Metrics
+def gen_total_posts_graph(engine, rendered_sql, title):
+    engine_name = "Druid"
+    rows, dur = exec_druid(rendered_sql)
+    rows = json.loads(rows)
+        
+    x = [ row["EXPR$0"] for row in rows[:1000] ]
+    y1 = [ row["questions"] for row in rows[:1000] ]
+    y2 = [ row["answers"] for row in rows[:1000] ]
+    y3 = [ row["other_posts"] for row in rows[:1000] ]
+
+    trace1 = go.Bar(
+        x=x,
+        y=y1,
+        name='questions'
+    )
+    trace2 = go.Bar(
+        x=x,
+        y=y2,
+        name='answers',
+    )
+    trace3 = go.Bar(
+        x=x,
+        y=y3,
+        name='other_posts',
+    )
+    figure = go.Figure(
+        data=[trace1, trace2, trace3],
+        layout=go.Layout(
+            title=title,
+            showlegend=True,
+            legend=go.layout.Legend(
+                x=0,
+                y=1.0
+            ),
+            margin=go.layout.Margin(l=40, r=0, t=40, b=30),
+            barmode='stack',
+        ),
+    )
+
+    markdown = gen_markdown(engine_name, dur, rendered_sql)
+
+    return figure, markdown, ""
+
+
+# Generate Markdown Result Text in Metric Discovery Tab
+def gen_markdown(engine_name, dur, rendered_sql):
+    return dedent('''
+        ###### Query executed using **{}** engine.
+        ###### Total time spent is {} seconds.
+        ###### SQL
+          ``` {} ```
+    '''.format(engine_name, dur, rendered_sql))
+    
 
 
 ################################################################################
