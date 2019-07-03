@@ -279,7 +279,7 @@ app.layout = html.Div([
                     },
                     style={'margin-top': '15px', 'margin-bottom': '15px', 'height': '500px'},
                 ),
-            ], style={'display':'block', 'width':'80%', 'margin':'0 auto'}),
+            ], style={'display':'block', 'width':'80%', 'margin':'0 auto', 'margin-bottom': '500px'}),
         ]),
 
         dcc.Tab(label='Live Data', children=[
