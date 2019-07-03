@@ -160,16 +160,16 @@ app.layout = html.Div([
                             id='metric_dropdown',
                             options=[
                                 {
-                                    'label': 'Questions Posted',
-                                    'value': "questions_posted",
-                                },
-                                {
                                     'label': 'Answers Posted',
                                     'value': "answers_posted",
                                 },
                                 {
                                     'label': 'Top Tags',
                                     'value': "top_tags",
+                                },
+                                {
+                                    'label': 'Questions Posted',
+                                    'value': "questions_posted",
                                 },
                             ],
                             placeholder="Select a metric",
@@ -512,11 +512,10 @@ def get_presto_state(n_clicks, sql):
     presto_result, dur = exec_presto(sql)
 
     return u'''
-        The Button has been pressed {} times,
         SQL is "{}",
         Query finished in {} seconds,
         Result is: "{}".
-    '''.format(n_clicks, sql, dur, presto_result)
+    '''.format(sql, dur, presto_result)
 
 
 # Adhoc Tab - Druid callback
