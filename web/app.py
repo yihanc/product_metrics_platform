@@ -35,8 +35,7 @@ metrics_config = {
                 WHERE _PostTypeId = 1
                     AND {{ time_filter }}
             ) p
-
-            {%- if other_filter_value is defined -%}
+            {% if other_filter_value is defined and other_filter_value|trim|length > 0 %}
             JOIN (
                 SELECT _Id, _Location
                 FROM dim_users
@@ -45,7 +44,6 @@ metrics_config = {
             ) u
                 ON p._OwnerUserId = u._Id
             {% endif %}
-
             GROUP BY
                 {{ time_groupby }}
             ORDER BY
@@ -409,30 +407,23 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
 
     time_filter = "__time BETWEEN '{}' AND '{}'".format(start_date, end_date)
 
-#     join_condition = ""
-#     if other_filter_value is not None and len(other_filter_value.strip()) != 0 and "join_condition" in metric:
-#         join_condition = Template(
-#             metric["join_condition"]
-#         ).render(other_filter=other_filter).format(other_filter_value)
-
 
     # Determine if JOIN IS needed
     if other_filter_value is not None and len(other_filter_value.split()) > 0:
         engine = "p"
         time_groupby = time_groupby.replace("__time", "FROM_ISO8601_TIMESTAMP(__time)")
 
-    print("other_filter_value", other_filter_value)
-    print(sql)
     rendered_sql = Template(sql).render(
         time_groupby=time_groupby,
         time_filter=time_filter,
         other_filter=other_filter,
-#        join_condition=join_condition,
+        other_filter_value=other_filter_value,
     ).format(
         other_filter_value,
     )
 
-    print(rendered_sql)
+    print("sql:", sql)
+    print("rendered sql: ", rendered_sql)
 
 
     ### Rendor SQL Finished
