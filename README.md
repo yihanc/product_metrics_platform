@@ -1,4 +1,4 @@
-# Product Metrics Platform 
+# Metrics as a Service
 
 This is a project I did during Insight Data Engineering program.
 
