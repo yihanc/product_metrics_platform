@@ -489,6 +489,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
         y_values = [ row["cnt"] for row in rows[:1000] ]
 
     
+    markdown = gen_markdown(engine_name, dur, rendered_sql)
     print("markdown : ", markdown)
 
     # Return result based on if it is Vertical Bar or Horizontal Bar
