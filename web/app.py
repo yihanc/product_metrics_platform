@@ -165,15 +165,6 @@ app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div([
     navbar,
 
-    html.H2(
-        children="Metrics as a Service",
-    ),
-
-    html.H5(
-        children="A web application to discover and explore predefined metrics fast and easily", 
-        style={'margin-top': '30px', 'margin-bottom': '50px', 'color': 'gray'},
-    ),
-
     dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Metrics Discovery', children=[
             html.Div(children=[
@@ -206,7 +197,7 @@ app.layout = html.Div([
                             ],
                             placeholder="Select a metric",
                             value='',
-                            style={'margin-top': '15px', 'margin-bottom': '15px', 'width':'300px'},
+                            style={'margin-top': '15px', 'margin-bottom': '10px', 'width':'300px'},
                         ),
 
                         # To be hidden if needed
@@ -216,7 +207,7 @@ app.layout = html.Div([
                             html.H5(
                                 id='time_filter_text',
                                 children='Select a date period',
-                                style={'margin-top': '30px', 'margin-bottom': '30px'},
+                                style={'margin-top': '15px', 'margin-bottom': '10px'},
                             ),
                             dcc.DatePickerRange(
                                 id='time_filter',
@@ -224,7 +215,7 @@ app.layout = html.Div([
                                 max_date_allowed=datetime.datetime(2019, 12, 31),
                                 start_date=datetime.datetime(2009, 1, 1),
                                 end_date=datetime.datetime(2020, 12, 31),
-                                style={'margin-top': '15px', 'margin-bottom': '15px'},
+                                style={'margin-top': '15px', 'margin-bottom': '10px'},
                             )],
                             id='time_filter_div',
                             style={'display': 'block'}
@@ -263,7 +254,7 @@ app.layout = html.Div([
                                 html.H5(
                                     id='other_filter_text',
                                     children='Select Filters From Other Table (Query may take ~1min)',
-                                    style={'margin-top': '30px', 'margin-bottom': '30px'},
+                                    style={'margin-top': '15px', 'margin-bottom': '10px'},
                                 ),
                                 dcc.Dropdown(
                                     id='other_filter',
@@ -297,7 +288,7 @@ app.layout = html.Div([
                             id="query_result",
                         ),
                     ], className='col'),
-                ], className='row', style={'height': '600px'} ),
+                ], className='row', style={'height': '550px'} ),
 
                 # BAR CHART
                 dcc.Loading(id='query_result_loading'), 
@@ -421,12 +412,9 @@ def hide_menus(name):
     return (res_time_filter, res_time_groupby, res_other_filter)
 
 
-# Metrics Tab - Update Graph
 @app.callback(
     [
-        Output('graph_bar', 'figure'),
         Output('query_result', 'children'),
-        Output('query_result_loading', 'children'),
     ],
     [
         Input('metric_dropdown', 'value'),
@@ -439,7 +427,7 @@ def hide_menus(name):
 def update_bar_output(name, start_date, end_date, other_filter, other_filter_value, time_groupby):
     ### Rendoring SQL...
     if name not in metrics_config:
-        return ({}, "", "")
+        return ("", )
     metric = metrics_config[name]
     engine = metric["engine"]
     sql = metric["sql_template"]
@@ -468,6 +456,60 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
     )
 
     print("rendered sql: ", rendered_sql)
+    engine_name = "Presto" if engine == "p" else "Druid"
+
+    markdown = gen_markdown(engine_name, rendered_sql)
+
+    print("markdown : ", markdown)
+    
+    return (markdown, )
+
+
+# Metrics Tab - Update Graph
+@app.callback(
+    [
+        Output('graph_bar', 'figure'),
+        Output('query_result_loading', 'children'),
+#        Output('query_time', 'children'),
+    ],
+    [
+        Input('metric_dropdown', 'value'),
+        Input('time_filter', 'start_date'),
+        Input('time_filter', 'end_date'),
+        Input('other_filter', 'value'),
+        Input('other_filter_value', 'value'),
+        Input('time_groupby', 'value'),
+    ])
+def update_bar_output(name, start_date, end_date, other_filter, other_filter_value, time_groupby):
+    ### Rendoring SQL...
+    if name not in metrics_config:
+        return ({}, "")
+    metric = metrics_config[name]
+    engine = metric["engine"]
+    sql = metric["sql_template"]
+    bar_graph_orientation = metric["bar_graph_orientation"]
+    title = metric["title"]
+
+    if other_filter_value is None or other_filter_value.strip() == "":
+        other_filter_value = ""
+        other_filter = ""
+
+    time_filter = "__time BETWEEN '{}' AND '{}'".format(start_date, end_date)
+
+
+    # Determine if JOIN IS needed
+    if other_filter_value is not None and len(other_filter_value.split()) > 0:
+        engine = "p"
+        time_groupby = time_groupby.replace("__time", "FROM_ISO8601_TIMESTAMP(__time)")
+
+    rendered_sql = Template(sql).render(
+        time_groupby=time_groupby,
+        time_filter=time_filter,
+        other_filter=other_filter,
+        other_filter_value=other_filter_value,
+    ).format(
+        other_filter_value,
+    )
 
 
     ### Rendor SQL Finished
@@ -488,9 +530,8 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
         x_values = [ row["EXPR$0"] for row in rows[:1000] ]
         y_values = [ row["cnt"] for row in rows[:1000] ]
 
-    
-    markdown = gen_markdown(engine_name, dur, rendered_sql)
-    print("markdown : ", markdown)
+
+    time_result = gen_query_time_result(dur)
 
     # Return result based on if it is Vertical Bar or Horizontal Bar
 
@@ -539,7 +580,7 @@ def update_bar_output(name, start_date, end_date, other_filter, other_filter_val
             ),
         }
     
-    return (result_bar, markdown, "")
+    return (result_bar, time_result)
 
 
 # Adhoc Tab - Presto callback
@@ -803,21 +844,25 @@ def gen_total_posts_graph(engine, rendered_sql, title):
             barmode='stack',
         ),
     )
+    time_result = gen_query_time_result(dur)
 
-    markdown = gen_markdown(engine_name, dur, rendered_sql)
-
-    return figure, markdown, ""
+    return figure, time_result
 
 
 # Generate Markdown Result Text in Metric Discovery Tab
-def gen_markdown(engine_name, dur, rendered_sql):
+def gen_markdown(engine_name, rendered_sql):
     return dedent('''
         ###### Query executed using **{}** engine.
-        ###### Total time spent is {} seconds.
         ###### SQL
           ``` {} ```
-    '''.format(engine_name, dur, rendered_sql))
+    '''.format(engine_name, rendered_sql))
+
     
+# Generate Markdown Result Text in Metric Discovery Tab
+def gen_query_time_result(dur):
+    return '''
+        Finished in {} seconds.
+    '''.format(dur)
 
 
 ################################################################################
