@@ -83,7 +83,7 @@ metrics_config = {
             SELECT tag_name, cnt 
             FROM dim_tags 
             ORDER BY cnt desc 
-            LIMIT 20
+            LIMIT 10
         ''',
         "time_filter_enabled": False, 
         "time_groupby_enabled": False,
@@ -204,7 +204,7 @@ app.layout = html.Div([
                         html.Div(
                             [
                             # Time Filters
-                            html.H5(
+                            html.H3(
                                 id='time_filter_text',
                                 children='Select a date period',
                                 style={'margin-top': '15px', 'margin-bottom': '10px'},
@@ -224,7 +224,7 @@ app.layout = html.Div([
                         html.Div(
                             [
                             # Time Group By
-                            html.H5(
+                            html.H3(
                                 id="time_groupby_text",
                                 children='Select Group By',
                                 style={'margin-top': '15px', 'margin-bottom': '15px'},
@@ -251,7 +251,7 @@ app.layout = html.Div([
                         html.Div(
                             [
                                 # Additional Filter
-                                html.H5(
+                                html.H3(
                                     id='other_filter_text',
                                     children='Select Filters From Other Table (Query may take ~1min)',
                                     style={'margin-top': '15px', 'margin-bottom': '10px'},
@@ -288,7 +288,7 @@ app.layout = html.Div([
                             id="query_result",
                         ),
                     ], className='col'),
-                ], className='row', style={'height': '550px'} ),
+                ], className='row', style={'min-height': '550px'} ),
 
                 # BAR CHART
                 dcc.Loading(id='query_result_loading'), 
@@ -378,7 +378,7 @@ app.layout = html.Div([
             ], style={'display':'block', 'width':'80%', 'margin':'0 auto', 'min-height':'1500px'}),
         ]),
     ]),
-])
+], style={'font-size': '1.25rem'})
 
 
 ################################################################################
@@ -852,8 +852,8 @@ def gen_total_posts_graph(engine, rendered_sql, title):
 # Generate Markdown Result Text in Metric Discovery Tab
 def gen_markdown(engine_name, rendered_sql):
     return dedent('''
-        ###### Query executed using **{}** engine.
-        ###### SQL
+        #### Query executed using **{}** engine.
+        #### SQL
           ``` {} ```
     '''.format(engine_name, rendered_sql))
 
